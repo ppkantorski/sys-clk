@@ -8,16 +8,19 @@
  * --------------------------------------------------------------------------
  */
 
-#include "base_menu_gui.h"
 
+#include "base_menu_gui.h"
 #include "fatal_gui.h"
 
 BaseMenuGui::BaseMenuGui()
 {
+    tsl::initializeThemeVars();
     this->context = nullptr;
     this->lastContextUpdate = 0;
     this->listElement = nullptr;
-    tsl::initializeThemeVars();
+    this->cpuVoltageUv = 0;
+    this->gpuVoltageUv = 0;
+    this->emcVoltageUv = 0;
 }
 
 BaseMenuGui::~BaseMenuGui()
@@ -43,9 +46,9 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
         renderer->drawString("Profile ", false, 246+6+4+2+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
         renderer->drawString(sysclkFormatProfile(context->profile, true), false, 302-2+6+4+1, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
 
-        y += 40;
+        y += 38;
 
-        renderer->drawRoundedRect(12+1,y-26+1,420,118-1,10.0,tsl::tableBGColor);
+        renderer->drawRoundedRect(12+1,y-26+1+2,420,118-1,10.0,tsl::tableBGColor);
 
         static struct
         {
@@ -67,7 +70,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
         renderer->drawString("GPU", false, 162-4+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
         renderer->drawString("MEM", false, 295-1+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
 
-        y += 25;
+        y += 20;
 
         for(unsigned int i = 0; i < SysClkModule_EnumMax; i++)
         {
@@ -76,8 +79,27 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
             renderer->drawString(buf, false, freqOffsets[i].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
         }
 
-        y += 25;
+        y += 20;
 
+        
+        // 6) Convert µV -> mV by dividing by 1000, then print as an integer "xxx mV":
+        snprintf(buf, sizeof(buf), "%u mV", cpuVoltageUv / 1000);
+        renderer->drawString(buf, false, freqOffsets[0].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
+        
+        snprintf(buf, sizeof(buf), "%u mV", gpuVoltageUv / 1000);
+        renderer->drawString(buf, false, freqOffsets[1].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
+        
+        snprintf(buf, sizeof(buf), "%u mV", emcVoltageUv / 1000);
+        renderer->drawString(buf, false, freqOffsets[2].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
+        
+        // Draw voltage labels
+        //renderer->drawString("VCPU", false, 22+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        //renderer->drawString("VGPU", false, 162-4+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        //renderer->drawString("VMEM", false, 295-1+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        
+        
+        y += 22;
+        
         static struct
         {
             SysClkThermalSensor s;
@@ -98,7 +120,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
             renderer->drawString(buf, false, tempOffsets[i].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
         }
 
-        y += 30;
+        y += 22;
 
         static struct
         {
@@ -132,6 +154,30 @@ void BaseMenuGui::refresh()
         if(!this->context)
         {
             this->context = new SysClkContext;
+        }
+
+        // Update voltage values
+        RgltrSession rgltr = {};
+        cpuVoltageUv = gpuVoltageUv = emcVoltageUv = 0;
+        
+        // CPU voltage
+        if (R_SUCCEEDED(rgltrOpenSession(&rgltr, PcvPowerDomainId_Max77621_Cpu))) {
+            if (R_FAILED(rgltrGetVoltage(&rgltr, &cpuVoltageUv))) cpuVoltageUv = 0;
+            rgltrCloseSession(&rgltr);
+        }
+        
+        // GPU voltage
+        rgltr = {};
+        if (R_SUCCEEDED(rgltrOpenSession(&rgltr, PcvPowerDomainId_Max77621_Gpu))) {
+            if (R_FAILED(rgltrGetVoltage(&rgltr, &gpuVoltageUv))) gpuVoltageUv = 0;
+            rgltrCloseSession(&rgltr);
+        }
+        
+        // EMC voltage
+        rgltr = {};
+        if (R_SUCCEEDED(rgltrOpenSession(&rgltr, PcvPowerDomainId_Max77812_Dram))) {
+            if (R_FAILED(rgltrGetVoltage(&rgltr, &emcVoltageUv))) emcVoltageUv = 0;
+            rgltrCloseSession(&rgltr);
         }
 
         Result rc = sysclkIpcGetCurrentContext(this->context);
