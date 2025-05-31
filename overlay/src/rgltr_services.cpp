@@ -1,4 +1,4 @@
-// infonx.cpp (no changes needed here—just compile it once)
+// rgltr_services.cpp (no changes needed here—just compile it once)
 #include <switch.h>
 #include "rgltr.h"
 #include "rgltr_services.h"  // for extern Service g_rgltrSrv, etc.
