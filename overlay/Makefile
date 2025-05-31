@@ -34,6 +34,7 @@ NO_ICON		:=	1
 #---------------------------------------------------------------------------------
 #TARGET_VERSION	:= $(shell git describe --dirty --always --tags)
 APP_VERSION		:= 2.0.1+
+TARGET_VERSION := $(APP_VERSION)
 
 #---------------------------------------------------------------------------------
 # options for code generation
