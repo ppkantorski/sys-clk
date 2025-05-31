@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "../../rgltr_services.h"
 #include "../../ipc.h"
 #include "base_gui.h"
 
@@ -19,6 +20,9 @@ class BaseMenuGui : public BaseGui
         SysClkContext* context;
         std::uint64_t lastContextUpdate;
         tsl::elm::List* listElement;
+        std::uint32_t cpuVoltageUv;
+        std::uint32_t gpuVoltageUv;
+        std::uint32_t emcVoltageUv;
 
     public:
         BaseMenuGui();
