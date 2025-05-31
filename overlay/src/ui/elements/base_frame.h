@@ -16,7 +16,7 @@
 class BaseFrame : public tsl::elm::HeaderOverlayFrame
 {
     public:
-        BaseFrame(BaseGui* gui) : tsl::elm::HeaderOverlayFrame(225) {
+        BaseFrame(BaseGui* gui) : tsl::elm::HeaderOverlayFrame(230) {
             this->gui = gui;
         }
 
