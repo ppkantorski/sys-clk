@@ -23,6 +23,8 @@ class BaseMenuGui : public BaseGui
         std::uint32_t cpuVoltageUv;
         std::uint32_t gpuVoltageUv;
         std::uint32_t emcVoltageUv;
+		std::uint32_t socVoltageUv; //add soc voltage
+		std::uint32_t vddVoltageUv;//add vdd2 voltage
 
     public:
         BaseMenuGui();
