@@ -36,16 +36,16 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
         char buf[32];
         std::uint32_t y = 95-4;
         renderer->drawRoundedRect(12,y-21,420,30,10.0,tsl::tableBGColor);
-        renderer->drawString("App ID: ", false, 22, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        renderer->drawString("App ID ", false, 22, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
         snprintf(buf, sizeof(buf), "%016lX", context->applicationId);
         renderer->drawString(buf, false, 81, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
 
-        renderer->drawString("Profile: ", false, 246+6, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        renderer->drawString(sysclkFormatProfile(context->profile, true), false, 302-2+6, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
+        renderer->drawString("Profile ", false, 246+6+4, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        renderer->drawString(sysclkFormatProfile(context->profile, true), false, 302-2+6+4, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
 
-        y += 41;
+        y += 40;
 
-        renderer->drawRoundedRect(12,y-26,420,120,10.0,tsl::tableBGColor);
+        renderer->drawRoundedRect(12,y-26+1,420,118,10.0,tsl::tableBGColor);
 
         static struct
         {
@@ -63,9 +63,9 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
             snprintf(buf, sizeof(buf), "%u.%u MHz", hz / 1000000, hz / 100000 - hz / 1000000 * 10);
             renderer->drawString(buf, false, freqOffsets[i].x -2, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
         }
-        renderer->drawString("CPU:", false, 22, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        renderer->drawString("GPU:", false, 162-4, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        renderer->drawString("MEM:", false, 295-1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        renderer->drawString("CPU", false, 22, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        renderer->drawString("GPU", false, 162-4, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        renderer->drawString("MEM", false, 295-1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
 
         y += 25;
 
@@ -88,9 +88,9 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
             { SysClkThermalSensor_Skin, 342-4 },
         };
 
-        renderer->drawString("SOC:", false, 22, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        renderer->drawString("PCB:", false, 166-4, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        renderer->drawString("Skin:", false, 303-1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        renderer->drawString("SOC", false, 22, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        renderer->drawString("PCB", false, 166-4, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        renderer->drawString("Skin", false, 303-1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
         for(unsigned int i = 0; i < SysClkModule_EnumMax; i++)
         {
             std::uint32_t millis = this->context->temps[tempOffsets[i].s];
@@ -111,8 +111,8 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
 
         renderer->drawString("Battery Power", false, 22, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
 
-        renderer->drawString("Now:", false, 160-4, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        renderer->drawString("Avg:", false, 304-1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        renderer->drawString("Now", false, 160-4, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        renderer->drawString("Avg", false, 304-1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
         for(unsigned int i = 0; i < SysClkPowerSensor_EnumMax; i++)
         {
             std::uint32_t mw = this->context->power[powerOffsets[i].s];
