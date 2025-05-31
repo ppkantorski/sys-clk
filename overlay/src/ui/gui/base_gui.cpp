@@ -22,8 +22,8 @@
 #define LOGO_LABEL_Y 50
 #define LOGO_LABEL_FONT_SIZE 28
 
-#define VERSION_X (LOGO_LABEL_X + 110)
-#define VERSION_Y LOGO_LABEL_Y
+#define VERSION_X (LOGO_LABEL_X + 110+8)
+#define VERSION_Y LOGO_LABEL_Y-4
 #define VERSION_FONT_SIZE 15
 
 void BaseGui::preDraw(tsl::gfx::Renderer* renderer)
