@@ -34,14 +34,14 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
     if(this->context)
     {
         char buf[32];
-        std::uint32_t y = 95;
+        std::uint32_t y = 95-4;
         renderer->drawRoundedRect(12,y-21,420,30,10.0,tsl::tableBGColor);
         renderer->drawString("App ID: ", false, 22, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
         snprintf(buf, sizeof(buf), "%016lX", context->applicationId);
         renderer->drawString(buf, false, 81, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
 
-        renderer->drawString("Profile: ", false, 246, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        renderer->drawString(sysclkFormatProfile(context->profile, true), false, 302-2, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
+        renderer->drawString("Profile: ", false, 246+6, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        renderer->drawString(sysclkFormatProfile(context->profile, true), false, 302-2+6, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
 
         y += 41;
 
