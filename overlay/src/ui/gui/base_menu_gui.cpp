@@ -17,6 +17,7 @@ BaseMenuGui::BaseMenuGui()
     this->context = nullptr;
     this->lastContextUpdate = 0;
     this->listElement = nullptr;
+    tsl::initializeThemeVars();
 }
 
 BaseMenuGui::~BaseMenuGui()
@@ -33,16 +34,18 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
     if(this->context)
     {
         char buf[32];
-        std::uint32_t y = 85;
-
-        renderer->drawString("App ID: ", false, 20, y, SMALL_TEXT_SIZE, DESC_COLOR);
+        std::uint32_t y = 95;
+        renderer->drawRoundedRect(12,y-21,420,30,10.0,tsl::tableBGColor);
+        renderer->drawString("App ID: ", false, 22, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
         snprintf(buf, sizeof(buf), "%016lX", context->applicationId);
-        renderer->drawString(buf, false, 81, y, SMALL_TEXT_SIZE, VALUE_COLOR);
+        renderer->drawString(buf, false, 81, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
 
-        renderer->drawString("Profile: ", false, 246, y, SMALL_TEXT_SIZE, DESC_COLOR);
-        renderer->drawString(sysclkFormatProfile(context->profile, true), false, 302, y, SMALL_TEXT_SIZE, VALUE_COLOR);
+        renderer->drawString("Profile: ", false, 246, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        renderer->drawString(sysclkFormatProfile(context->profile, true), false, 302-2, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
 
-        y += 30;
+        y += 41;
+
+        renderer->drawRoundedRect(12,y-26,420,120,10.0,tsl::tableBGColor);
 
         static struct
         {
@@ -50,19 +53,19 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
             std::uint32_t x;
         } freqOffsets[SysClkModule_EnumMax] = {
             { SysClkModule_CPU, 61 },
-            { SysClkModule_GPU, 204 },
-            { SysClkModule_MEM, 342 },
+            { SysClkModule_GPU, 204-4 -2},
+            { SysClkModule_MEM, 342-4 },
         };
 
         for(unsigned int i = 0; i < SysClkModule_EnumMax; i++)
         {
             std::uint32_t hz = this->context->freqs[freqOffsets[i].m];
             snprintf(buf, sizeof(buf), "%u.%u MHz", hz / 1000000, hz / 100000 - hz / 1000000 * 10);
-            renderer->drawString(buf, false, freqOffsets[i].x, y, SMALL_TEXT_SIZE, VALUE_COLOR);
+            renderer->drawString(buf, false, freqOffsets[i].x -2, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
         }
-        renderer->drawString("CPU:", false, 20, y, SMALL_TEXT_SIZE, DESC_COLOR);
-        renderer->drawString("GPU:", false, 162, y, SMALL_TEXT_SIZE, DESC_COLOR);
-        renderer->drawString("MEM:", false, 295, y, SMALL_TEXT_SIZE, DESC_COLOR);
+        renderer->drawString("CPU:", false, 22, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        renderer->drawString("GPU:", false, 162-4, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        renderer->drawString("MEM:", false, 295-1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
 
         y += 25;
 
@@ -70,7 +73,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
         {
             std::uint32_t hz = this->context->realFreqs[freqOffsets[i].m];
             snprintf(buf, sizeof(buf), "%u.%u MHz", hz / 1000000, hz / 100000 - hz / 1000000 * 10);
-            renderer->drawString(buf, false, freqOffsets[i].x, y, SMALL_TEXT_SIZE, VALUE_COLOR);
+            renderer->drawString(buf, false, freqOffsets[i].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
         }
 
         y += 25;
@@ -81,18 +84,18 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
             std::uint32_t x;
         } tempOffsets[SysClkModule_EnumMax] = {
             { SysClkThermalSensor_SOC, 61 },
-            { SysClkThermalSensor_PCB, 204 },
-            { SysClkThermalSensor_Skin, 342 },
+            { SysClkThermalSensor_PCB, 204-4 -2},
+            { SysClkThermalSensor_Skin, 342-4 },
         };
 
-        renderer->drawString("SOC:", false, 20, y, SMALL_TEXT_SIZE, DESC_COLOR);
-        renderer->drawString("PCB:", false, 166, y, SMALL_TEXT_SIZE, DESC_COLOR);
-        renderer->drawString("Skin:", false, 303, y, SMALL_TEXT_SIZE, DESC_COLOR);
+        renderer->drawString("SOC:", false, 22, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        renderer->drawString("PCB:", false, 166-4, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        renderer->drawString("Skin:", false, 303-1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
         for(unsigned int i = 0; i < SysClkModule_EnumMax; i++)
         {
             std::uint32_t millis = this->context->temps[tempOffsets[i].s];
             snprintf(buf, sizeof(buf), "%u.%u °C", millis / 1000, (millis - millis / 1000 * 1000) / 100);
-            renderer->drawString(buf, false, tempOffsets[i].x, y, SMALL_TEXT_SIZE, VALUE_COLOR);
+            renderer->drawString(buf, false, tempOffsets[i].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
         }
 
         y += 30;
@@ -102,19 +105,19 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
             SysClkPowerSensor s;
             std::uint32_t x;
         } powerOffsets[SysClkPowerSensor_EnumMax] = {
-            { SysClkPowerSensor_Now, 204 },
-            { SysClkPowerSensor_Avg, 342 },
+            { SysClkPowerSensor_Now, 204 -2-2},
+            { SysClkPowerSensor_Avg, 342 -2},
         };
 
-        renderer->drawString("Battery Power", false, 20, y, SMALL_TEXT_SIZE, DESC_COLOR);
+        renderer->drawString("Battery Power", false, 22, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
 
-        renderer->drawString("Now:", false, 160, y, SMALL_TEXT_SIZE, DESC_COLOR);
-        renderer->drawString("Avg:", false, 304, y, SMALL_TEXT_SIZE, DESC_COLOR);
+        renderer->drawString("Now:", false, 160-4, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        renderer->drawString("Avg:", false, 304-1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
         for(unsigned int i = 0; i < SysClkPowerSensor_EnumMax; i++)
         {
             std::uint32_t mw = this->context->power[powerOffsets[i].s];
             snprintf(buf, sizeof(buf), "%d mW", mw);
-            renderer->drawString(buf, false, powerOffsets[i].x, y, SMALL_TEXT_SIZE, VALUE_COLOR);
+            renderer->drawString(buf, false, powerOffsets[i].x-2, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
         }
     }
 }
