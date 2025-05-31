@@ -40,7 +40,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
         snprintf(buf, sizeof(buf), "%016lX", context->applicationId);
         renderer->drawString(buf, false, 81, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
 
-        renderer->drawString("Profile ", false, 246+6+4, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        renderer->drawString("Profile ", false, 246+6+4+2, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
         renderer->drawString(sysclkFormatProfile(context->profile, true), false, 302-2+6+4, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
 
         y += 40;
