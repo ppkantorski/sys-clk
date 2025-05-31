@@ -1,4 +1,4 @@
-// infonx.h
+// rgltr_services.h
 // ========
 // Minimal header declarations for rgltr‐related functionality.
 // Any file that wants to call rgltrOpenSession(), rgltrGetVoltage(), etc. should
