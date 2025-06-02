@@ -93,8 +93,8 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
         renderer->drawString(buf, false, freqOffsets[1].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
         
         // MEM voltage |VDDQ/VDD2
-        snprintf(buf, sizeof(buf), "%u/%u mV", emcVoltageUv / 1000, vddVoltageUv / 1000);
-        renderer->drawString(buf, false, freqOffsets[2].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
+        snprintf(buf, sizeof(buf), "%u | %u mV", emcVoltageUv / 1000, vddVoltageUv / 1000);
+        renderer->drawString(buf, false, freqOffsets[2].x-19, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
         
         y += 22;
         
@@ -124,7 +124,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
         snprintf(buf, sizeof(buf), "%u mV", socVoltageUv / 1000);
         renderer->drawString(buf, false, 61+1, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
 
-        y += 22;
+        //y += 22;
 
         static struct
         {
@@ -135,7 +135,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
             { SysClkPowerSensor_Avg, 342 -2+1},
         };
 
-        renderer->drawString("Battery Power", false, 22+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        //renderer->drawString("Battery Power", false, 22+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
 
         renderer->drawString("Now", false, 160-4+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
         renderer->drawString("Avg", false, 304-1+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
