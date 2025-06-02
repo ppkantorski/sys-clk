@@ -21,6 +21,8 @@ BaseMenuGui::BaseMenuGui()
     this->cpuVoltageUv = 0;
     this->gpuVoltageUv = 0;
     this->emcVoltageUv = 0;
+    this->socVoltageUv = 0;
+    this->vddVoltageUv = 0; 
 }
 
 BaseMenuGui::~BaseMenuGui()
@@ -81,22 +83,18 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
 
         y += 20;
 
-        
-        // 6) Convert µV -> mV by dividing by 1000, then print as an integer "xxx mV":
+
+        // CPU voltage
         snprintf(buf, sizeof(buf), "%u mV", cpuVoltageUv / 1000);
         renderer->drawString(buf, false, freqOffsets[0].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
         
+        // GPU voltage
         snprintf(buf, sizeof(buf), "%u mV", gpuVoltageUv / 1000);
         renderer->drawString(buf, false, freqOffsets[1].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
         
-        snprintf(buf, sizeof(buf), "%u mV", emcVoltageUv / 1000);
+        // MEM voltage |VDDQ/VDD2
+        snprintf(buf, sizeof(buf), "%u/%u mV", emcVoltageUv / 1000, vddVoltageUv / 1000);
         renderer->drawString(buf, false, freqOffsets[2].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
-        
-        // Draw voltage labels
-        //renderer->drawString("VCPU", false, 22+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        //renderer->drawString("VGPU", false, 162-4+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        //renderer->drawString("VMEM", false, 295-1+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        
         
         y += 22;
         
@@ -119,6 +117,12 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
             snprintf(buf, sizeof(buf), "%u.%u °C", millis / 1000, (millis - millis / 1000 * 1000) / 100);
             renderer->drawString(buf, false, tempOffsets[i].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
         }
+
+        // soc voltage
+        y += 20;
+        renderer->drawString(" ", false, 22+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+        snprintf(buf, sizeof(buf), "%u mV", socVoltageUv / 1000);
+        renderer->drawString(buf, false, 61+1, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
 
         y += 22;
 
@@ -156,11 +160,11 @@ void BaseMenuGui::refresh()
             this->context = new SysClkContext;
         }
 
-        // Update voltage values
+        // update voltage
         RgltrSession rgltr = {};
-        cpuVoltageUv = gpuVoltageUv = emcVoltageUv = 0;
         
         // CPU voltage
+        cpuVoltageUv = 0;
         if (R_SUCCEEDED(rgltrOpenSession(&rgltr, PcvPowerDomainId_Max77621_Cpu))) {
             if (R_FAILED(rgltrGetVoltage(&rgltr, &cpuVoltageUv))) cpuVoltageUv = 0;
             rgltrCloseSession(&rgltr);
@@ -168,6 +172,7 @@ void BaseMenuGui::refresh()
         
         // GPU voltage
         rgltr = {};
+        gpuVoltageUv = 0;
         if (R_SUCCEEDED(rgltrOpenSession(&rgltr, PcvPowerDomainId_Max77621_Gpu))) {
             if (R_FAILED(rgltrGetVoltage(&rgltr, &gpuVoltageUv))) gpuVoltageUv = 0;
             rgltrCloseSession(&rgltr);
@@ -175,8 +180,25 @@ void BaseMenuGui::refresh()
         
         // EMC voltage
         rgltr = {};
+        emcVoltageUv = 0;
         if (R_SUCCEEDED(rgltrOpenSession(&rgltr, PcvPowerDomainId_Max77812_Dram))) {
             if (R_FAILED(rgltrGetVoltage(&rgltr, &emcVoltageUv))) emcVoltageUv = 0;
+            rgltrCloseSession(&rgltr);
+        }
+        
+        // New SOC voltage
+        rgltr = {};
+        socVoltageUv = 0;
+        if (R_SUCCEEDED(rgltrOpenSession(&rgltr, PcvPowerDomainId_Max77620_Sd0))) {
+            if (R_FAILED(rgltrGetVoltage(&rgltr, &socVoltageUv))) socVoltageUv = 0;
+            rgltrCloseSession(&rgltr);
+        }
+        
+        // New vdd2 voltage
+        rgltr = {};
+        vddVoltageUv = 0;
+        if (R_SUCCEEDED(rgltrOpenSession(&rgltr, PcvPowerDomainId_Max77620_Sd1))) {
+            if (R_FAILED(rgltrGetVoltage(&rgltr, &vddVoltageUv))) vddVoltageUv = 0;
             rgltrCloseSession(&rgltr);
         }
 
