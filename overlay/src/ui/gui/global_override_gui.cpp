@@ -69,7 +69,7 @@ void GlobalOverrideGui::addModuleListItem(SysClkModule module)
 
 void GlobalOverrideGui::listUI()
 {
-    this->listElement->addItem(new tsl::elm::CategoryHeader("Temporary overrides"));
+    this->listElement->addItem(new tsl::elm::CategoryHeader("Temporary Overrides"));
     this->addModuleListItem(SysClkModule_CPU);
     this->addModuleListItem(SysClkModule_GPU);
     this->addModuleListItem(SysClkModule_MEM);

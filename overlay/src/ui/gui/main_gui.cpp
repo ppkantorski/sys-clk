@@ -17,20 +17,8 @@
 
 void MainGui::listUI()
 {
-    this->enabledToggle = new tsl::elm::ToggleListItem("Enable", false);
-    enabledToggle->setStateChangedListener([this](bool state) {
-        Result rc = sysclkIpcSetEnabled(state);
-        if(R_FAILED(rc))
-        {
-            FatalGui::openWithResultCode("sysclkIpcSetEnabled", rc);
-        }
 
-        this->lastContextUpdate = armGetSystemTick();
-        this->context->enabled = state;
-    });
-    this->listElement->addItem(this->enabledToggle);
-
-    tsl::elm::ListItem* appProfileItem = new tsl::elm::ListItem("Edit app profile");
+    tsl::elm::ListItem* appProfileItem = new tsl::elm::ListItem("Edit App Profile");
     appProfileItem->setClickListener([this](u64 keys) {
         if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
         {
@@ -44,7 +32,7 @@ void MainGui::listUI()
 
     this->listElement->addItem(new tsl::elm::CategoryHeader("Advanced"));
 
-    tsl::elm::ListItem* globalProfileItem = new tsl::elm::ListItem("Edit global profile");
+    tsl::elm::ListItem* globalProfileItem = new tsl::elm::ListItem("Edit Global Profile");
     globalProfileItem->setClickListener([this](u64 keys) {
         if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
         {
@@ -56,7 +44,7 @@ void MainGui::listUI()
     });
     this->listElement->addItem(globalProfileItem);
 
-    tsl::elm::ListItem* globalOverrideItem = new tsl::elm::ListItem("Temporary overrides");
+    tsl::elm::ListItem* globalOverrideItem = new tsl::elm::ListItem("Temporary Overrides");
     globalOverrideItem->setClickListener([this](u64 keys) {
         if((keys & HidNpadButton_A) == HidNpadButton_A)
         {
@@ -68,7 +56,7 @@ void MainGui::listUI()
     });
     this->listElement->addItem(globalOverrideItem);
 
-    this->listElement->addItem(new tsl::elm::CategoryHeader("Misc"));
+    //this->listElement->addItem(new tsl::elm::CategoryHeader("Misc"));
 
     tsl::elm::ListItem* miscItem = new tsl::elm::ListItem("Config");
     miscItem->setClickListener([this](u64 keys) {
@@ -87,8 +75,8 @@ void MainGui::refresh()
 {
     BaseMenuGui::refresh();
 
-    if(this->context)
-    {
-        this->enabledToggle->setState(this->context->enabled);
-    }
+    //if(this->context)
+    //{
+    //    this->enabledToggle->setState(this->context->enabled);
+    //}
 }

@@ -175,6 +175,19 @@ void MiscGui::listUI()
 {
     this->listElement->addItem(new tsl::elm::CategoryHeader("Config"));
 
+    this->enabledToggle = new tsl::elm::ToggleListItem("Enable", false);
+    enabledToggle->setStateChangedListener([this](bool state) {
+        Result rc = sysclkIpcSetEnabled(state);
+        if(R_FAILED(rc))
+        {
+            FatalGui::openWithResultCode("sysclkIpcSetEnabled", rc);
+        }
+
+        this->lastContextUpdate = armGetSystemTick();
+        this->context->enabled = state;
+    });
+    this->listElement->addItem(this->enabledToggle);
+
     // Add the 5 specific config toggles using INI keys
     addConfigToggle("uncapped_clocks", "Uncapped Clocks");
     addConfigToggle("override_boost_mode", "Override Boost Mode");
@@ -185,6 +198,12 @@ void MiscGui::listUI()
 
 void MiscGui::refresh() {
     BaseMenuGui::refresh();
+
+    // Update the enabled toggle state
+    if(this->context)
+    {
+        this->enabledToggle->setState(this->context->enabled);
+    }
 
     // Update config values and toggle states every 60 frames (once per second at 60fps)
     if (this->context && ++frameCounter >= 60)

@@ -33,5 +33,7 @@ class MiscGui : public BaseMenuGui
         bool getConfigValue(const std::string& iniKey);
         void setConfigValue(const std::string& iniKey, bool value);
         
+        tsl::elm::ToggleListItem* enabledToggle; // Add this line
+        
         u8 frameCounter = 60;
 };
