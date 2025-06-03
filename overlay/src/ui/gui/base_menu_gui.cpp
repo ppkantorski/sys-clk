@@ -50,7 +50,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
 
         y += 38;
 
-        renderer->drawRoundedRect(12+1,y-26+1+2,420,118-1,10.0, renderer->a(tsl::tableBGColor));
+        renderer->drawRoundedRect(12+1,y-26+1+2,420,118-2,10.0, renderer->a(tsl::tableBGColor));
 
         static struct
         {
