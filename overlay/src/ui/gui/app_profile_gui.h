@@ -13,6 +13,7 @@
 #include "../../ipc.h"
 #include "base_menu_gui.h"
 #include "freq_choice_gui.h"
+#define SYSCLK_GLOBAL_PROFILE_TID       0xA111111111111111
 
 class AppProfileGui : public BaseMenuGui
 {

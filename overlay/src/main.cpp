@@ -21,11 +21,12 @@ class AppOverlay : public tsl::Overlay
         AppOverlay() {}
         ~AppOverlay() {}
 
-        virtual void initServices() override {
-            rgltrInitialize();
-        }
+        //virtual void initServices() override {
+        //    rgltrInitialize();
+        //}
 
         virtual void exitServices() override {
+            rgltrExit();
             sysclkIpcExit();
         }
 

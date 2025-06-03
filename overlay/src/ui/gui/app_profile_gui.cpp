@@ -35,7 +35,7 @@ void AppProfileGui::openFreqChoiceGui(tsl::elm::ListItem* listItem, SysClkProfil
         return;
     }
 
-    tsl::changeTo<FreqChoiceGui>(this->profileList->mhzMap[profile][module] * 1000000, hzList, hzCount, [this, listItem, profile, module](std::uint32_t hz) {
+    tsl::changeTo<FreqChoiceGui>(this->profileList->mhzMap[profile][module] * 1000000, hzList, hzCount, module, [this, listItem, profile, module](std::uint32_t hz) {
         this->profileList->mhzMap[profile][module] = hz / 1000000;
         listItem->setValue(formatListFreqMHz(this->profileList->mhzMap[profile][module]));
         Result rc = sysclkIpcSetProfiles(this->applicationId, this->profileList);
@@ -101,7 +101,7 @@ void AppProfileGui::update()
 {
     BaseMenuGui::update();
 
-    if(this->context && this->applicationId != this->context->applicationId)
+    if((this->context && this->applicationId != this->context->applicationId) &&  this->applicationId != SYSCLK_GLOBAL_PROFILE_TID)
     {
         tsl::changeTo<FatalGui>(
             "Application changed\n\n"

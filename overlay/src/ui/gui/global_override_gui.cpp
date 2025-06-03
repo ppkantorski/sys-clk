@@ -33,7 +33,7 @@ void GlobalOverrideGui::openFreqChoiceGui(SysClkModule module)
         return;
     }
 
-    tsl::changeTo<FreqChoiceGui>(this->context->overrideFreqs[module], hzList, hzCount, [this, module](std::uint32_t hz) {
+    tsl::changeTo<FreqChoiceGui>(this->context->overrideFreqs[module], hzList, hzCount, module, [this, module](std::uint32_t hz) {
         Result rc = sysclkIpcSetOverride(module, hz);
         if(R_FAILED(rc))
         {

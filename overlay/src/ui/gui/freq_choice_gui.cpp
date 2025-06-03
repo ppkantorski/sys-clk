@@ -13,11 +13,12 @@
 #include "../format.h"
 #include "fatal_gui.h"
 
-FreqChoiceGui::FreqChoiceGui(std::uint32_t selectedHz, std::uint32_t* hzList, std::uint32_t hzCount, FreqChoiceListener listener)
+FreqChoiceGui::FreqChoiceGui(std::uint32_t selectedHz, std::uint32_t* hzList, std::uint32_t hzCount, SysClkModule module, FreqChoiceListener listener)
 {
     this->selectedHz = selectedHz;
     this->hzList = hzList;
     this->hzCount = hzCount;
+    this->module = module;  // Add this
     this->listener = listener;
 }
 
@@ -44,9 +45,19 @@ tsl::elm::ListItem* FreqChoiceGui::createFreqListItem(std::uint32_t hz, bool sel
 
 void FreqChoiceGui::listUI()
 {
+    // Add CategoryHeader based on module
+    std::string moduleName = sysclkFormatModule(this->module, true);
+    this->listElement->addItem(new tsl::elm::CategoryHeader(moduleName));
+    
     this->listElement->addItem(this->createFreqListItem(0, this->selectedHz == 0));
+    std::uint32_t hz;
     for(std::uint32_t i = 0; i < this->hzCount; i++) {
-        std::uint32_t hz = this->hzList[i];
+        hz = this->hzList[i];
+        // Skip 204 MHz exactly
+        if(moduleName == "Memory" && hz == 204000000) {
+            continue;
+        }
+        
         this->listElement->addItem(this->createFreqListItem(hz, (hz / 1000000) == (this->selectedHz / 1000000)));
     }
 }

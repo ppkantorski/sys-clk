@@ -43,6 +43,18 @@ void MainGui::listUI()
 
     this->listElement->addItem(new tsl::elm::CategoryHeader("Advanced"));
 
+    tsl::elm::ListItem* globalProfileItem = new tsl::elm::ListItem("Global profile");
+    globalProfileItem->setClickListener([this](u64 keys) {
+        if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
+        {
+            AppProfileGui::changeTo(SYSCLK_GLOBAL_PROFILE_TID);
+            return true;
+        }
+
+        return false;
+    });
+    this->listElement->addItem(globalProfileItem);
+
     tsl::elm::ListItem* globalOverrideItem = new tsl::elm::ListItem("Temporary overrides");
     globalOverrideItem->setClickListener([this](u64 keys) {
         if((keys & HidNpadButton_A) == HidNpadButton_A)

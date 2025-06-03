@@ -93,8 +93,8 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
         renderer->drawString(buf, false, freqOffsets[1].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
         
         // MEM voltage |VDDQ/VDD2
-        snprintf(buf, sizeof(buf), "%u | %u mV", emcVoltageUv / 1000, vddVoltageUv / 1000);
-        renderer->drawString(buf, false, freqOffsets[2].x-19, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
+        snprintf(buf, sizeof(buf), "%u%u mV", emcVoltageUv / 1000, vddVoltageUv / 1000);
+        renderer->drawStringWithColoredSections(buf, {""}, freqOffsets[2].x-19-4, y, SMALL_TEXT_SIZE, tsl::infoTextColor, tsl::separatorColor);
         
         y += 22;
         
@@ -161,6 +161,7 @@ void BaseMenuGui::refresh()
         }
 
         // update voltage
+        rgltrInitialize();
         RgltrSession rgltr = {};
         
         // CPU voltage
@@ -201,6 +202,7 @@ void BaseMenuGui::refresh()
             if (R_FAILED(rgltrGetVoltage(&rgltr, &vddVoltageUv))) vddVoltageUv = 0;
             rgltrCloseSession(&rgltr);
         }
+        rgltrExit();
 
         Result rc = sysclkIpcGetCurrentContext(this->context);
         if(R_FAILED(rc))

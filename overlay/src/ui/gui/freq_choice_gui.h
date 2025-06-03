@@ -24,11 +24,12 @@ class FreqChoiceGui : public BaseMenuGui
         std::uint32_t selectedHz;
         std::uint32_t* hzList;
         std::uint32_t hzCount;
+        SysClkModule module;  // Added
         FreqChoiceListener listener;
         tsl::elm::ListItem* createFreqListItem(std::uint32_t hz, bool selected);
 
     public:
-        FreqChoiceGui(std::uint32_t selectedHz, std::uint32_t* hzList, std::uint32_t hzCount, FreqChoiceListener listener);
+        FreqChoiceGui(std::uint32_t selectedHz, std::uint32_t* hzList, std::uint32_t hzCount, SysClkModule module, FreqChoiceListener listener);
         ~FreqChoiceGui() {}
         void listUI() override;
 };
