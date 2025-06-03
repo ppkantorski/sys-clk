@@ -15,8 +15,6 @@
 
 MiscGui::MiscGui()
 {
-    // Default to false - we don't need Mariko detection for this simple config interface
-    this->isMariko = false;
     
     // Load current config values
     configValues["uncapped_clocks"] = getConfigValue("uncapped_clocks");
@@ -35,7 +33,8 @@ bool MiscGui::getConfigValue(const std::string& iniKey)
 {
     std::ifstream file("/config/sys-clk/config.ini");
     if (!file.is_open()) {
-        return false; // Default to false if file doesn't exist
+        // Return default values if file doesn't exist
+        return (iniKey == "gpu_dvfs"); // gpu_dvfs defaults to true, others default to false
     }
     
     std::string line;
@@ -78,7 +77,8 @@ bool MiscGui::getConfigValue(const std::string& iniKey)
         }
     }
     
-    return false; // Default to false if key not found
+    // Return default values if key not found
+    return (iniKey == "gpu_dvfs"); // gpu_dvfs defaults to true, others default to false
 }
 
 void MiscGui::setConfigValue(const std::string& iniKey, bool value)
