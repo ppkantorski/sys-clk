@@ -23,7 +23,6 @@ class MiscGui : public BaseMenuGui
         void refresh() override;
 
     protected:
-        bool isMariko = false;
         
         std::unordered_map<std::string, tsl::elm::ToggleListItem*> configToggles;
         std::unordered_map<std::string, bool> configValues;
