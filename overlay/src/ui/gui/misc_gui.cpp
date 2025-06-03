@@ -71,7 +71,7 @@ bool MiscGui::getConfigValue(const std::string& iniKey)
                 value.erase(value.find_last_not_of(" \t") + 1);
                 
                 if (key == iniKey) {
-                    return (value == "1" || value == "true");
+                    return (value == "1");
                 }
             }
         }
