@@ -40,7 +40,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
     {
         char buf[32];
         std::uint32_t y = 95-4;
-        renderer->drawRoundedRect(12+1,y-21,420,30,10.0,tsl::tableBGColor);
+        renderer->drawRoundedRect(12+1,y-21,420,30,10.0,renderer->a(tsl::tableBGColor));
         renderer->drawString("App ID ", false, 22+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
         snprintf(buf, sizeof(buf), "%016lX", context->applicationId);
         renderer->drawString(buf, false, 81+1, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
@@ -50,7 +50,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
 
         y += 38;
 
-        renderer->drawRoundedRect(12+1,y-26+1+2,420,118-1,10.0,tsl::tableBGColor);
+        renderer->drawRoundedRect(12+1,y-26+1+2,420,118-1,10.0, renderer->a(tsl::tableBGColor));
 
         static struct
         {
@@ -115,7 +115,12 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
         {
             std::uint32_t millis = this->context->temps[tempOffsets[i].s];
             snprintf(buf, sizeof(buf), "%u.%u °C", millis / 1000, (millis - millis / 1000 * 1000) / 100);
-            renderer->drawString(buf, false, tempOffsets[i].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
+            
+            // Convert millis to Celsius for color calculation
+            float tempCelsius = static_cast<float>(millis) / 1000.0f;
+            tsl::Color tempColor = tsl::GradientColor(tempCelsius);
+            renderer->drawString(buf, false, tempOffsets[i].x, y, SMALL_TEXT_SIZE, tempColor);
+            //renderer->drawString(buf, false, tempOffsets[i].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
         }
 
         // soc voltage
