@@ -1,3 +1,5 @@
+// Additional config settings designed for retronx-team's sys-clk 2.0.1
+
 #pragma once
 
 #include "../../ipc.h"
