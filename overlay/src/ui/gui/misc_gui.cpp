@@ -1,3 +1,5 @@
+// Additional config settings designed for retronx-team's sys-clk 2.0.1
+
 #include "misc_gui.h"
 #include "fatal_gui.h"
 #include "../format.h"
