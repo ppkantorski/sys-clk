@@ -17,6 +17,22 @@
 
 void MainGui::listUI()
 {
+    bool isUsingEOS = usingEOS(SYS_MODULE_PATH);
+    
+    if (!isUsingEOS) {
+        this->enabledToggle = new tsl::elm::ToggleListItem("Enable", false);
+        enabledToggle->setStateChangedListener([this](bool state) {
+            Result rc = sysclkIpcSetEnabled(state);
+            if(R_FAILED(rc))
+            {
+                FatalGui::openWithResultCode("sysclkIpcSetEnabled", rc);
+            }
+
+            this->lastContextUpdate = armGetSystemTick();
+            this->context->enabled = state;
+        });
+        this->listElement->addItem(this->enabledToggle);
+    }
 
     tsl::elm::ListItem* appProfileItem = new tsl::elm::ListItem("Edit App Profile");
     appProfileItem->setClickListener([this](u64 keys) {
@@ -58,17 +74,19 @@ void MainGui::listUI()
 
     //this->listElement->addItem(new tsl::elm::CategoryHeader("Misc"));
 
-    tsl::elm::ListItem* miscItem = new tsl::elm::ListItem("Settings");
-    miscItem->setClickListener([this](u64 keys) {
-        if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
-        {
-            tsl::changeTo<MiscGui>();
-            return true;
-        }
+    if (isUsingEOS) {
+        tsl::elm::ListItem* miscItem = new tsl::elm::ListItem("Settings");
+        miscItem->setClickListener([this](u64 keys) {
+            if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
+            {
+                tsl::changeTo<MiscGui>();
+                return true;
+            }
 
-        return false;
-    });
-    this->listElement->addItem(miscItem);
+            return false;
+        });
+        this->listElement->addItem(miscItem);
+    }
 }
 
 void MainGui::refresh()
