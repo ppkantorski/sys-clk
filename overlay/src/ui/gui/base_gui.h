@@ -11,6 +11,10 @@
 #pragma once
 
 #include <tesla.hpp>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <algorithm>
 
 #include "../style.h"
 
@@ -25,3 +29,8 @@ class BaseGui : public tsl::Gui
         virtual tsl::elm::Element* baseUI() = 0;
         virtual void refresh() {}
 };
+
+
+#define SYS_MODULE_PATH "/atmosphere/contents/00FF0000636C6BFF/exefs.nsp"
+
+extern bool usingEOS(const std::string& filepath);
