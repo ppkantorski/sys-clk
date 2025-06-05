@@ -92,9 +92,14 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
         snprintf(buf, sizeof(buf), "%u mV", gpuVoltageUv / 1000);
         renderer->drawString(buf, false, freqOffsets[1].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
         
-        // MEM voltage |VDDQ/VDD2
-        snprintf(buf, sizeof(buf), "%u%u mV", emcVoltageUv / 1000, vddVoltageUv / 1000);
-        renderer->drawStringWithColoredSections(buf, {""}, freqOffsets[2].x-19-4, y, SMALL_TEXT_SIZE, tsl::infoTextColor, tsl::separatorColor);
+        if (vddVoltageUv != 0) {
+            // MEM voltage |VDDQ/VDD2
+            snprintf(buf, sizeof(buf), "%u%u mV", emcVoltageUv / 1000, vddVoltageUv / 1000);
+            renderer->drawStringWithColoredSections(buf, {""}, freqOffsets[2].x-19-4, y, SMALL_TEXT_SIZE, tsl::infoTextColor, tsl::separatorColor);
+        } else {
+            snprintf(buf, sizeof(buf), "%u mV", emcVoltageUv / 1000);
+            renderer->drawString(buf, false, freqOffsets[2].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
+        }
         
         y += 22;
         
@@ -125,9 +130,11 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
 
         // soc voltage
         y += 20;
-        renderer->drawString(" ", false, 22+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        snprintf(buf, sizeof(buf), "%u mV", socVoltageUv / 1000);
-        renderer->drawString(buf, false, 61+1, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
+
+        if (socVoltageUv != 0) {
+            snprintf(buf, sizeof(buf), "%u mV", socVoltageUv / 1000);
+            renderer->drawString(buf, false, 61+1, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
+        }
 
         //y += 22;
 
