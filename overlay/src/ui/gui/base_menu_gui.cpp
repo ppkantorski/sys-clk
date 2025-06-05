@@ -164,60 +164,79 @@ void BaseMenuGui::refresh()
 {
     std::uint64_t ticks = armGetSystemTick();
 
-    if(armTicksToNs(ticks - this->lastContextUpdate) > 1000000000UL)
+    // Only run once every 1 000 000 000 ns (1 second)
+    if (armTicksToNs(ticks - this->lastContextUpdate) > 1'000'000'000UL)
     {
         this->lastContextUpdate = ticks;
-        if(!this->context)
+
+        if (!this->context)
         {
             this->context = new SysClkContext;
         }
 
-        // update voltage
+        // ─────────────────────────────────────────────────────────────────────────
+        // Initialize the regulator library once, then read all five voltages
+        // ─────────────────────────────────────────────────────────────────────────
+
         rgltrInitialize();
-        RgltrSession rgltr = {};
-        
-        // CPU voltage
-        cpuVoltageUv = 0;
-        if (R_SUCCEEDED(rgltrOpenSession(&rgltr, PcvPowerDomainId_Max77621_Cpu))) {
-            if (R_FAILED(rgltrGetVoltage(&rgltr, &cpuVoltageUv))) cpuVoltageUv = 0;
-            rgltrCloseSession(&rgltr);
+
+        //
+        // We keep a static array of the five PcvPowerDomainId constants here.
+        // Because it’s declared "static const", it lives in .rodata (no stack cost).
+        //
+        static const PowerDomainId domainIds[5] = {
+            PcvPowerDomainId_Max77621_Cpu,    // CPU voltage
+            PcvPowerDomainId_Max77621_Gpu,    // GPU voltage
+            PcvPowerDomainId_Max77812_Dram,   // EMC/DRAM voltage
+            PcvPowerDomainId_Max77620_Sd0,    // SOC (Sd0) voltage
+            PcvPowerDomainId_Max77620_Sd1     // VDD2 (Sd1) voltage
+        };
+
+        //
+        // Pointers to your five u32 members in BaseMenuGui:
+        //   cpuVoltageUv, gpuVoltageUv, emcVoltageUv, socVoltageUv, vddVoltageUv
+        //
+        u32* voltagePtrs[5] = {
+            &cpuVoltageUv,
+            &gpuVoltageUv,
+            &emcVoltageUv,
+            &socVoltageUv,
+            &vddVoltageUv
+        };
+
+        // Loop exactly five times — once per domain
+        for (int i = 0; i < 5; i++)
+        {
+            // 1) Zero the output variable:
+            *(voltagePtrs[i]) = 0;
+
+            // 2) Create a fresh session struct for each domain:
+            RgltrSession session = {};
+
+            // 3) Try to open a session on domainIds[i]:
+            if (R_SUCCEEDED(rgltrOpenSession(&session, domainIds[i])))
+            {
+                // 4) If open succeeded, attempt to read voltage:
+                if (R_FAILED(rgltrGetVoltage(&session, voltagePtrs[i])))
+                {
+                    // On failure, leave *(voltagePtrs[i]) == 0
+                    *(voltagePtrs[i]) = 0;
+                }
+
+                // 5) Close the session before moving on
+                rgltrCloseSession(&session);
+            }
+            // If rgltrOpenSession fails, the voltage stays at 0
         }
-        
-        // GPU voltage
-        rgltr = {};
-        gpuVoltageUv = 0;
-        if (R_SUCCEEDED(rgltrOpenSession(&rgltr, PcvPowerDomainId_Max77621_Gpu))) {
-            if (R_FAILED(rgltrGetVoltage(&rgltr, &gpuVoltageUv))) gpuVoltageUv = 0;
-            rgltrCloseSession(&rgltr);
-        }
-        
-        // EMC voltage
-        rgltr = {};
-        emcVoltageUv = 0;
-        if (R_SUCCEEDED(rgltrOpenSession(&rgltr, PcvPowerDomainId_Max77812_Dram))) {
-            if (R_FAILED(rgltrGetVoltage(&rgltr, &emcVoltageUv))) emcVoltageUv = 0;
-            rgltrCloseSession(&rgltr);
-        }
-        
-        // New SOC voltage
-        rgltr = {};
-        socVoltageUv = 0;
-        if (R_SUCCEEDED(rgltrOpenSession(&rgltr, PcvPowerDomainId_Max77620_Sd0))) {
-            if (R_FAILED(rgltrGetVoltage(&rgltr, &socVoltageUv))) socVoltageUv = 0;
-            rgltrCloseSession(&rgltr);
-        }
-        
-        // New vdd2 voltage
-        rgltr = {};
-        vddVoltageUv = 0;
-        if (R_SUCCEEDED(rgltrOpenSession(&rgltr, PcvPowerDomainId_Max77620_Sd1))) {
-            if (R_FAILED(rgltrGetVoltage(&rgltr, &vddVoltageUv))) vddVoltageUv = 0;
-            rgltrCloseSession(&rgltr);
-        }
+
         rgltrExit();
 
+        // ─────────────────────────────────────────────────────────────────────────
+        // Now update the SysClkContext exactly as before
+        // ─────────────────────────────────────────────────────────────────────────
+
         Result rc = sysclkIpcGetCurrentContext(this->context);
-        if(R_FAILED(rc))
+        if (R_FAILED(rc))
         {
             FatalGui::openWithResultCode("sysclkIpcGetCurrentContext", rc);
             return;
