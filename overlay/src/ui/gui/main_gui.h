@@ -14,8 +14,8 @@
 
 class MainGui : public BaseMenuGui
 {
-    //protected:
-    //    tsl::elm::ToggleListItem* enabledToggle;
+    protected:
+        tsl::elm::ToggleListItem* enabledToggle;
 
     public:
         MainGui() {}
