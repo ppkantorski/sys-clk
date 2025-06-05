@@ -1,5 +1,3 @@
-// Additional config settings designed for retronx-team's sys-clk 2.0.1
-
 #include "misc_gui.h"
 #include "fatal_gui.h"
 #include "../format.h"
@@ -166,6 +164,7 @@ void MiscGui::updateConfigToggles() {
 
 void MiscGui::listUI()
 {
+
     this->listElement->addItem(new tsl::elm::CategoryHeader("Settings"));
 
     this->enabledToggle = new tsl::elm::ToggleListItem("Enable", false);
@@ -184,7 +183,7 @@ void MiscGui::listUI()
     // Add the 5 specific config toggles using INI keys
     addConfigToggle("uncapped_clocks", "Uncapped Clocks");
     addConfigToggle("override_boost_mode", "Override Boost Mode");
-    addConfigToggle("auto_cpu_boost", "Auto CPU Boost"); // Removed Mariko detection since we can't detect it
+    addConfigToggle("auto_cpu_boost", "Auto CPU Boost");
     addConfigToggle("sync_reversenx", "Sync ReverseNX");
     addConfigToggle("gpu_dvfs", "GPU DVFS");
 }
