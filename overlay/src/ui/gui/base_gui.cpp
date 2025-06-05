@@ -13,6 +13,7 @@
 #include "../elements/base_frame.h"
 #include "logo_rgba_bin.h"
 
+
 #define LOGO_WIDTH 110
 #define LOGO_HEIGHT 39
 #define LOGO_X 18
@@ -26,11 +27,51 @@
 #define VERSION_Y LOGO_LABEL_Y-4
 #define VERSION_FONT_SIZE 15
 
+extern bool usingEOS(const std::string& filepath) {
+    std::ifstream file(filepath, std::ios::binary);
+    if (!file) return false;
+
+    const std::string target = "eos";
+    const size_t bufferSize = 4096;
+    std::vector<char> buffer(bufferSize + target.size() - 1);
+
+    size_t bytesRead = 0;
+    while (file) {
+        // Retain overlap from previous buffer
+        if (bytesRead > 0) {
+            std::copy(buffer.end() - (target.size() - 1), buffer.end(), buffer.begin());
+        }
+
+        // Read next chunk
+        file.read(buffer.data() + (target.size() - 1), bufferSize);
+        bytesRead = file.gcount();
+        if (bytesRead == 0) break;
+
+        // Search for "eos" in the buffer
+        auto it = std::search(
+            buffer.begin(),
+            buffer.begin() + bytesRead + (target.size() - 1),
+            target.begin(),
+            target.end()
+        );
+
+        if (it != buffer.begin() + bytesRead + (target.size() - 1)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void BaseGui::preDraw(tsl::gfx::Renderer* renderer)
 {
     renderer->drawBitmap(LOGO_X, LOGO_Y, LOGO_WIDTH, LOGO_HEIGHT, logo_rgba_bin);
     renderer->drawString("overlay", false, LOGO_LABEL_X, LOGO_LABEL_Y, LOGO_LABEL_FONT_SIZE, renderer->a(TEXT_COLOR));
     renderer->drawString(TARGET_VERSION, false, VERSION_X, VERSION_Y, VERSION_FONT_SIZE, tsl::versionTextColor);
+    bool isUsingEOS = usingEOS(SYS_MODULE_PATH);
+    if (isUsingEOS) {
+        renderer->drawString("EOS mode", false, VERSION_X+82, VERSION_Y, VERSION_FONT_SIZE, tsl::warningTextColor);
+    }
 }
 
 tsl::elm::Element* BaseGui::createUI()
