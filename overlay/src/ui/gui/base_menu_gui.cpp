@@ -164,7 +164,7 @@ void BaseMenuGui::refresh()
 {
     std::uint64_t ticks = armGetSystemTick();
 
-    if(armTicksToNs(ticks - this->lastContextUpdate) > 500000000UL)
+    if(armTicksToNs(ticks - this->lastContextUpdate) > 1000000000UL)
     {
         this->lastContextUpdate = ticks;
         if(!this->context)
