@@ -112,9 +112,9 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
     renderer->drawString(displayStrings[9], false, dataPositions[1], y, SMALL_TEXT_SIZE, tsl::infoTextColor);   // GPU voltage
     
     // Memory voltage - check if VDD is present
-    if (vddVoltageUv) [[unlikely]] {
+    if (emcVoltageUv && vddVoltageUv) {
         renderer->drawStringWithColoredSections(displayStrings[10], {""}, dataPositions[5], y, SMALL_TEXT_SIZE, tsl::infoTextColor, tsl::separatorColor);
-    } else [[likely]] {
+    } else if (vddVoltageUv) {
         renderer->drawString(displayStrings[10], false, dataPositions[2], y, SMALL_TEXT_SIZE, tsl::infoTextColor);
     }
     
