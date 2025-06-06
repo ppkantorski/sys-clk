@@ -33,4 +33,8 @@ class BaseMenuGui : public BaseGui
         tsl::elm::Element* baseUI() override;
         void refresh() override;
         virtual void listUI() = 0;
+
+    private:
+        char displayStrings[17][32];  // Pre-formatted display strings
+        tsl::Color tempColors[3];     // Pre-computed temperature colors
 };
