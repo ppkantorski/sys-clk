@@ -33,7 +33,7 @@ NO_ICON		:=	1
 # version control constants
 #---------------------------------------------------------------------------------
 #TARGET_VERSION	:= $(shell git describe --dirty --always --tags)
-APP_VERSION		:= 2.0.1+r5
+APP_VERSION		:= 2.0.1+r6
 TARGET_VERSION := $(APP_VERSION)
 
 #---------------------------------------------------------------------------------
