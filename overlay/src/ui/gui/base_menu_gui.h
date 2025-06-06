@@ -37,4 +37,5 @@ class BaseMenuGui : public BaseGui
     private:
         char displayStrings[17][32];  // Pre-formatted display strings
         tsl::Color tempColors[3];     // Pre-computed temperature colors
+        bool isUsingEOS;
 };
