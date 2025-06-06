@@ -62,7 +62,6 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
     if(!this->context) [[unlikely]] return;
     
     // All constants pre-calculated and cached
-    static const auto tableBGAlpha = renderer->a(tsl::tableBGColor);
     static constexpr const char* const labels[10] = {
         "App ID ", "Profile ", "CPU", "GPU", "MEM", "SOC", "PCB", "Skin", "Now", "Avg"
     };
@@ -72,7 +71,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
     u32 y = 91;
     
     // === TOP SECTION ===
-    renderer->drawRoundedRect(13, 70, 420, 30, 10.0f, tableBGAlpha);
+    renderer->drawRoundedRect(13, 70, 420, 30, 10.0f, renderer->a(tsl::tableBGColor));
     
     // App ID - use pre-formatted string
     renderer->drawString(labels[0], false, positions[0], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
@@ -85,7 +84,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
     y = 129; // Direct assignment instead of += 38
     
     // === MAIN DATA SECTION ===
-    renderer->drawRoundedRect(13, 106, 420, 116, 10.0f, tableBGAlpha);
+    renderer->drawRoundedRect(13, 106, 420, 116, 10.0f, renderer->a(tsl::tableBGColor));
     
     // === FREQUENCY SECTION ===
     // Labels first (better cache locality)
