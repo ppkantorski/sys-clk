@@ -289,7 +289,7 @@ void BaseMenuGui::refresh()
     
     // Memory voltage (handle VDD case)
     if (emcVoltageUv && vddVoltageUv) {
-        sprintf(displayStrings[10], "%u%u mV", emcVoltageUv / 1000U, vddVoltageUv / 1000U);
+        sprintf(displayStrings[10], "%u%u mV", vddVoltageUv / 1000U, emcVoltageUv / 1000U);
     } else if (vddVoltageUv) {
         sprintf(displayStrings[10], "%u mV", vddVoltageUv / 1000U);
     } else if (emcVoltageUv) {
