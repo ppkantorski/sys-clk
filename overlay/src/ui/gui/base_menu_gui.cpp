@@ -8,272 +8,273 @@
  * --------------------------------------------------------------------------
  */
 
-
 #include "base_menu_gui.h"
 #include "fatal_gui.h"
 
-bool IsErista() { 
-    SetSysProductModel model = SetSysProductModel_Invalid;
-    setsysGetProductModel(&model);
-    
-    if (model == SetSysProductModel_Nx || \
-        model == SetSysProductModel_Copper)
-        return true;
-    
-    return false;
-}
-    
-    
-bool IsMariko() {
-    SetSysProductModel model = SetSysProductModel_Invalid;
-    setsysGetProductModel(&model);
-    
-    if (model == SetSysProductModel_Iowa || \
-        model == SetSysProductModel_Hoag || \
-        model == SetSysProductModel_Calcio || \
-        model == SetSysProductModel_Aula)
-        return true;
-    
-    return false;
+// Cache hardware model to avoid repeated syscalls
+static bool g_hardwareModelCached = false;
+static bool g_isMariko = false;
+
+static inline bool IsMariko() {
+    if (!g_hardwareModelCached) {
+        SetSysProductModel model = SetSysProductModel_Invalid;
+        setsysGetProductModel(&model);
+        g_isMariko = (model == SetSysProductModel_Iowa || 
+                     model == SetSysProductModel_Hoag || 
+                     model == SetSysProductModel_Calcio || 
+                     model == SetSysProductModel_Aula);
+        g_hardwareModelCached = true;
+    }
+    return g_isMariko;
 }
 
+static inline bool IsErista() {
+    return !IsMariko();
+}
 
-BaseMenuGui::BaseMenuGui()
+BaseMenuGui::BaseMenuGui() : tempColors{tsl::Color(0), tsl::Color(0), tsl::Color(0)}
 {
     tsl::initializeThemeVars();
     this->context = nullptr;
     this->lastContextUpdate = 0;
     this->listElement = nullptr;
-    this->cpuVoltageUv = 0;
-    this->gpuVoltageUv = 0;
-    this->emcVoltageUv = 0;
-    this->socVoltageUv = 0;
-    this->vddVoltageUv = 0; 
+    
+    // Initialize all voltages to zero once
+    memset(&cpuVoltageUv, 0, sizeof(u32) * 5); // Zero all 5 voltage values at once
+    
+    // Pre-cache hardware model during initialization
+    IsMariko();
+    
+    // Initialize display strings
+    memset(displayStrings, 0, sizeof(displayStrings));
 }
 
 BaseMenuGui::~BaseMenuGui()
 {
-    if(this->context)
-    {
-        delete this->context;
-    }
+    delete this->context; // delete handles nullptr automatically
 }
 
+// Fast preDraw - just renders pre-computed strings
 void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
 {
     BaseGui::preDraw(renderer);
-    if(this->context)
-    {
-        char buf[32];
-        std::uint32_t y = 95-4;
-        renderer->drawRoundedRect(12+1,y-21,420,30,10.0,renderer->a(tsl::tableBGColor));
-        renderer->drawString("App ID ", false, 22+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        snprintf(buf, sizeof(buf), "%016lX", context->applicationId);
-        renderer->drawString(buf, false, 81+1, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
-
-        renderer->drawString("Profile ", false, 246+6+4+2+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        renderer->drawString(sysclkFormatProfile(context->profile, true), false, 302-2+6+4+1, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
-
-        y += 38;
-
-        renderer->drawRoundedRect(12+1,y-26+1+2,420,118-2,10.0, renderer->a(tsl::tableBGColor));
-
-        static struct
-        {
-            SysClkModule m;
-            std::uint32_t x;
-        } freqOffsets[SysClkModule_EnumMax] = {
-            { SysClkModule_CPU, 61 +1},
-            { SysClkModule_GPU, 204-4 -2+1},
-            { SysClkModule_MEM, 342-4 +1},
-        };
-
-        for(unsigned int i = 0; i < SysClkModule_EnumMax; i++)
-        {
-            std::uint32_t hz = this->context->freqs[freqOffsets[i].m];
-            snprintf(buf, sizeof(buf), "%u.%u MHz", hz / 1000000, hz / 100000 - hz / 1000000 * 10);
-            renderer->drawString(buf, false, freqOffsets[i].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
-        }
-        renderer->drawString("CPU", false, 22+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        renderer->drawString("GPU", false, 162-4+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        renderer->drawString("MEM", false, 295-1+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-
-        y += 20;
-
-        for(unsigned int i = 0; i < SysClkModule_EnumMax; i++)
-        {
-            std::uint32_t hz = this->context->realFreqs[freqOffsets[i].m];
-            snprintf(buf, sizeof(buf), "%u.%u MHz", hz / 1000000, hz / 100000 - hz / 1000000 * 10);
-            renderer->drawString(buf, false, freqOffsets[i].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
-        }
-
-        y += 20;
-
-
-        // CPU voltage
-        snprintf(buf, sizeof(buf), "%u mV", cpuVoltageUv / 1000);
-        renderer->drawString(buf, false, freqOffsets[0].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
-        
-        // GPU voltage
-        snprintf(buf, sizeof(buf), "%u mV", gpuVoltageUv / 1000);
-        renderer->drawString(buf, false, freqOffsets[1].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
-        
-        if (vddVoltageUv != 0) {
-            // MEM voltage |VDDQ/VDD2
-            snprintf(buf, sizeof(buf), "%u%u mV", emcVoltageUv / 1000, vddVoltageUv / 1000);
-            renderer->drawStringWithColoredSections(buf, {""}, freqOffsets[2].x-19-4, y, SMALL_TEXT_SIZE, tsl::infoTextColor, tsl::separatorColor);
-        } else {
-            snprintf(buf, sizeof(buf), "%u mV", emcVoltageUv / 1000);
-            renderer->drawString(buf, false, freqOffsets[2].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
-        }
-        
-        y += 22;
-        
-        static struct
-        {
-            SysClkThermalSensor s;
-            std::uint32_t x;
-        } tempOffsets[SysClkModule_EnumMax] = {
-            { SysClkThermalSensor_SOC, 61 +1},
-            { SysClkThermalSensor_PCB, 204-4 -2 +1},
-            { SysClkThermalSensor_Skin, 342-4  +1},
-        };
-
-        renderer->drawString("SOC", false, 22+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        renderer->drawString("PCB", false, 166-4+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        renderer->drawString("Skin", false, 303-1+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        for(unsigned int i = 0; i < SysClkModule_EnumMax; i++)
-        {
-            std::uint32_t millis = this->context->temps[tempOffsets[i].s];
-            snprintf(buf, sizeof(buf), "%u.%u °C", millis / 1000, (millis - millis / 1000 * 1000) / 100);
-            
-            // Convert millis to Celsius for color calculation
-            float tempCelsius = static_cast<float>(millis) / 1000.0f;
-            tsl::Color tempColor = tsl::GradientColor(tempCelsius);
-            renderer->drawString(buf, false, tempOffsets[i].x, y, SMALL_TEXT_SIZE, tempColor);
-            //renderer->drawString(buf, false, tempOffsets[i].x, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
-        }
-
-        // soc voltage
-        y += 20;
-
-        if (socVoltageUv != 0) {
-            snprintf(buf, sizeof(buf), "%u mV", socVoltageUv / 1000);
-            renderer->drawString(buf, false, 61+1, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
-        }
-
-        //y += 22;
-
-        static struct
-        {
-            SysClkPowerSensor s;
-            std::uint32_t x;
-        } powerOffsets[SysClkPowerSensor_EnumMax] = {
-            { SysClkPowerSensor_Now, 204 -2-2+1},
-            { SysClkPowerSensor_Avg, 342 -2+1},
-        };
-
-        //renderer->drawString("Battery Power", false, 22+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-
-        renderer->drawString("Now", false, 160-4+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        renderer->drawString("Avg", false, 304-1+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-        for(unsigned int i = 0; i < SysClkPowerSensor_EnumMax; i++)
-        {
-            std::uint32_t mw = this->context->power[powerOffsets[i].s];
-            snprintf(buf, sizeof(buf), "%d mW", mw);
-            renderer->drawString(buf, false, powerOffsets[i].x-2, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
-        }
+    if(!this->context) [[unlikely]] return;
+    
+    // All constants pre-calculated and cached
+    static const auto tableBGAlpha = renderer->a(tsl::tableBGColor);
+    static constexpr const char* const labels[10] = {
+        "App ID ", "Profile ", "CPU", "GPU", "MEM", "SOC", "PCB", "Skin", "Now", "Avg"
+    };
+    static constexpr u32 positions[10] = {23, 257, 23, 159, 296, 23, 163, 304, 157, 305};
+    static constexpr u32 dataPositions[6] = {62, 199, 343, 196, 341, 320};
+    
+    u32 y = 91;
+    
+    // === TOP SECTION ===
+    renderer->drawRoundedRect(13, 70, 420, 30, 10.0f, tableBGAlpha);
+    
+    // App ID - use pre-formatted string
+    renderer->drawString(labels[0], false, positions[0], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+    renderer->drawString(displayStrings[0], false, 82, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
+    
+    // Profile - use pre-formatted string
+    renderer->drawString(labels[1], false, positions[1], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+    renderer->drawString(displayStrings[1], false, 311, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
+    
+    y = 129; // Direct assignment instead of += 38
+    
+    // === MAIN DATA SECTION ===
+    renderer->drawRoundedRect(13, 106, 420, 116, 10.0f, tableBGAlpha);
+    
+    // === FREQUENCY SECTION ===
+    // Labels first (better cache locality)
+    renderer->drawString(labels[2], false, positions[2], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+    renderer->drawString(labels[3], false, positions[3], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+    renderer->drawString(labels[4], false, positions[4], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+    
+    // Current frequencies - use pre-formatted strings
+    renderer->drawString(displayStrings[2], false, dataPositions[0], y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // CPU
+    renderer->drawString(displayStrings[3], false, dataPositions[1], y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // GPU
+    renderer->drawString(displayStrings[4], false, dataPositions[2], y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // MEM
+    
+    y = 149; // Direct assignment (129 + 20)
+    
+    // === REAL FREQUENCIES ===
+    renderer->drawString(displayStrings[5], false, dataPositions[0], y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // CPU real
+    renderer->drawString(displayStrings[6], false, dataPositions[1], y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // GPU real
+    renderer->drawString(displayStrings[7], false, dataPositions[2], y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // MEM real
+    
+    y = 169; // Direct assignment (149 + 20)
+    
+    // === VOLTAGES ===
+    renderer->drawString(displayStrings[8], false, dataPositions[0], y, SMALL_TEXT_SIZE, tsl::infoTextColor);   // CPU voltage
+    renderer->drawString(displayStrings[9], false, dataPositions[1], y, SMALL_TEXT_SIZE, tsl::infoTextColor);   // GPU voltage
+    
+    // Memory voltage - check if VDD is present
+    if (vddVoltageUv) [[unlikely]] {
+        renderer->drawStringWithColoredSections(displayStrings[10], {""}, dataPositions[5], y, SMALL_TEXT_SIZE, tsl::infoTextColor, tsl::separatorColor);
+    } else [[likely]] {
+        renderer->drawString(displayStrings[10], false, dataPositions[2], y, SMALL_TEXT_SIZE, tsl::infoTextColor);
     }
+    
+    y = 191; // Direct assignment (169 + 22)
+    
+    // === TEMPERATURE SECTION ===
+    // Labels
+    renderer->drawString(labels[5], false, positions[5], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+    renderer->drawString(labels[6], false, positions[6], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+    renderer->drawString(labels[7], false, positions[7], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+    
+    // Temperatures with color - use pre-computed colors
+    renderer->drawString(displayStrings[11], false, dataPositions[0], y, SMALL_TEXT_SIZE, tempColors[0]);  // SOC
+    renderer->drawString(displayStrings[12], false, dataPositions[1], y, SMALL_TEXT_SIZE, tempColors[1]);  // PCB
+    renderer->drawString(displayStrings[13], false, dataPositions[2], y, SMALL_TEXT_SIZE, tempColors[2]);  // Skin
+    
+    y = 211; // Direct assignment (191 + 20)
+    
+    // === SOC VOLTAGE & POWER ===
+    // SOC voltage (if available)
+    if (socVoltageUv) [[unlikely]] {
+        renderer->drawString(displayStrings[14], false, dataPositions[0], y, SMALL_TEXT_SIZE, tsl::infoTextColor);
+    }
+    
+    // Power labels and values
+    renderer->drawString(labels[8], false, positions[8], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+    renderer->drawString(labels[9], false, positions[9], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+    
+    renderer->drawString(displayStrings[15], false, dataPositions[3], y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // Power now
+    renderer->drawString(displayStrings[16], false, dataPositions[4], y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // Power avg
 }
 
+// Optimized refresh - now does all the string formatting once per second
 void BaseMenuGui::refresh()
 {
-    std::uint64_t ticks = armGetSystemTick();
-    // Only run once every 1 000 000 000 ns (1 second)
-    if (armTicksToNs(ticks - this->lastContextUpdate) > 1'000'000'000UL)
-    {
-        this->lastContextUpdate = ticks;
-        if (!this->context)
-        {
-            this->context = new SysClkContext;
-        }
-
-        // ─────────────────────────────────────────────────────────────────────────
-        // Initialize the regulator library once, then read all relevant voltages
-        // ─────────────────────────────────────────────────────────────────────────
-        rgltrInitialize();
-
-        //
-        // Define the “full” list of 5 domains in .rodata (no stack cost):
-        //
-        static const PowerDomainId domainIdsAll[5] = {
-            PcvPowerDomainId_Max77621_Cpu,    // CPU voltage
-            PcvPowerDomainId_Max77621_Gpu,    // GPU voltage
-            PcvPowerDomainId_Max77812_Dram,   // EMC/DRAM voltage
-            PcvPowerDomainId_Max77620_Sd0,    // SOC (Sd0) voltage
-            PcvPowerDomainId_Max77620_Sd1     // VDD2 (Sd1) voltage
-        };
-        //
-        // Pointers to your five u32 members in BaseMenuGui:
-        //   cpuVoltageUv, gpuVoltageUv, emcVoltageUv, socVoltageUv, vddVoltageUv
-        //
-        u32* voltagePtrsAll[5] = {
-            &cpuVoltageUv,  // index 0 → CPU
-            &gpuVoltageUv,  // index 1 → GPU
-            &emcVoltageUv,  // index 2 → DRAM
-            &socVoltageUv,  // index 3 → SOC
-            &vddVoltageUv   // index 4 → VDD2
-        };
-
-        //
-        // If we’re on Erista, skip the last two domains (Sd0 and Sd1).
-        // Otherwise, use all five domains.
-        //
-        const int domainCount = IsMariko() ? 5 : 3;
-
-        for (int i = 0; i < domainCount; i++)
-        {
-            // 1) Zero the output variable up front
-            *(voltagePtrsAll[i]) = 0;
-
-            // 2) Create a fresh session struct for each domain:
-            RgltrSession session = {};
-
-            // 3) Try to open a session on domainIdsAll[i]:
-            if (R_SUCCEEDED(rgltrOpenSession(&session, domainIdsAll[i])))
-            {
-                // 4) If open succeeded, attempt to read voltage:
-                if (R_FAILED(rgltrGetVoltage(&session, voltagePtrsAll[i])))
-                {
-                    // On failure to read, leave *(voltagePtrsAll[i]) == 0
-                    *(voltagePtrsAll[i]) = 0;
-                }
-
-                // 5) Close the session before moving on
-                rgltrCloseSession(&session);
-            }
-            // If rgltrOpenSession fails, the voltage stays at 0 automatically
-        }
-
-        rgltrExit();
-
-        // ─────────────────────────────────────────────────────────────────────────
-        // Now update the SysClkContext exactly as before
-        // ─────────────────────────────────────────────────────────────────────────
-        Result rc = sysclkIpcGetCurrentContext(this->context);
-        if (R_FAILED(rc))
-        {
-            FatalGui::openWithResultCode("sysclkIpcGetCurrentContext", rc);
-            return;
-        }
+    const u64 ticks = armGetSystemTick();
+    // Use cached comparison - 1 billion nanoseconds
+    if (armTicksToNs(ticks - this->lastContextUpdate) <= 1000000000UL) [[likely]] {
+        return; // Early exit for most calls
     }
+    
+    this->lastContextUpdate = ticks;
+    
+    // Lazy context allocation
+    if (!this->context) [[unlikely]] {
+        this->context = new SysClkContext;
+    }
+
+    // === ULTRA-FAST VOLTAGE READING ===
+    // Pre-computed domain configuration based on hardware
+    static const PowerDomainId domains[] = {
+        PcvPowerDomainId_Max77621_Cpu,    // [0] CPU
+        PcvPowerDomainId_Max77621_Gpu,    // [1] GPU  
+        PcvPowerDomainId_Max77812_Dram,   // [2] EMC/DRAM
+        PcvPowerDomainId_Max77620_Sd0,    // [3] SOC (Mariko only)
+        PcvPowerDomainId_Max77620_Sd1     // [4] VDD2 (Mariko only)
+    };
+    
+    // Voltage array for direct indexing
+    u32* voltages[] = {&cpuVoltageUv, &gpuVoltageUv, &emcVoltageUv, &socVoltageUv, &vddVoltageUv};
+    
+    // Single regulator init/exit cycle
+    if (R_SUCCEEDED(rgltrInitialize())) [[likely]] {
+        const int domainCount = IsMariko() ? 5 : 3;
+        
+        // Unrolled voltage reading for maximum speed
+        for (int i = 0; i < domainCount; ++i) {
+            RgltrSession session;
+            if (R_SUCCEEDED(rgltrOpenSession(&session, domains[i]))) [[likely]] {
+                if (R_FAILED(rgltrGetVoltage(&session, voltages[i]))) {
+                    *voltages[i] = 0;
+                }
+                rgltrCloseSession(&session);
+            } else {
+                *voltages[i] = 0;
+            }
+        }
+        
+        // Zero remaining voltages for Erista
+        if (!IsMariko()) [[unlikely]] {
+            socVoltageUv = vddVoltageUv = 0;
+        }
+        
+        rgltrExit();
+    } else {
+        // Zero all voltages on regulator failure
+        memset(&cpuVoltageUv, 0, sizeof(u32) * 5);
+    }
+
+    // === SYSCLK CONTEXT UPDATE ===
+    const Result rc = sysclkIpcGetCurrentContext(this->context);
+    if (R_FAILED(rc)) [[unlikely]] {
+        FatalGui::openWithResultCode("sysclkIpcGetCurrentContext", rc);
+        return;
+    }
+    
+    // === FORMAT ALL DISPLAY STRINGS (once per second) ===
+    // App ID (hex conversion)
+    sprintf(displayStrings[0], "%016lX", context->applicationId);
+    
+    // Profile
+    strcpy(displayStrings[1], sysclkFormatProfile(context->profile, true));
+    
+    // Current frequencies
+    u32 hz = context->freqs[0]; // CPU
+    sprintf(displayStrings[2], "%u.%u MHz", hz / 1000000U, (hz / 100000U) % 10U);
+    
+    hz = context->freqs[1]; // GPU
+    sprintf(displayStrings[3], "%u.%u MHz", hz / 1000000U, (hz / 100000U) % 10U);
+    
+    hz = context->freqs[2]; // MEM
+    sprintf(displayStrings[4], "%u.%u MHz", hz / 1000000U, (hz / 100000U) % 10U);
+    
+    // Real frequencies
+    hz = context->realFreqs[0]; // CPU
+    sprintf(displayStrings[5], "%u.%u MHz", hz / 1000000U, (hz / 100000U) % 10U);
+    
+    hz = context->realFreqs[1]; // GPU
+    sprintf(displayStrings[6], "%u.%u MHz", hz / 1000000U, (hz / 100000U) % 10U);
+    
+    hz = context->realFreqs[2]; // MEM
+    sprintf(displayStrings[7], "%u.%u MHz", hz / 1000000U, (hz / 100000U) % 10U);
+    
+    // Voltages
+    sprintf(displayStrings[8], "%u mV", cpuVoltageUv / 1000U);
+    sprintf(displayStrings[9], "%u mV", gpuVoltageUv / 1000U);
+    
+    // Memory voltage (handle VDD case)
+    if (vddVoltageUv) {
+        sprintf(displayStrings[10], "%u%u mV", emcVoltageUv / 1000U, vddVoltageUv / 1000U);
+    } else {
+        sprintf(displayStrings[10], "%u mV", emcVoltageUv / 1000U);
+    }
+    
+    // Temperatures and pre-compute colors
+    u32 millis = context->temps[0]; // SOC
+    sprintf(displayStrings[11], "%u.%u °C", millis / 1000U, (millis % 1000U) / 100U);
+    tempColors[0] = tsl::GradientColor(millis * 0.001f);
+    
+    millis = context->temps[1]; // PCB
+    sprintf(displayStrings[12], "%u.%u °C", millis / 1000U, (millis % 1000U) / 100U);
+    tempColors[1] = tsl::GradientColor(millis * 0.001f);
+    
+    millis = context->temps[2]; // Skin
+    sprintf(displayStrings[13], "%u.%u °C", millis / 1000U, (millis % 1000U) / 100U);
+    tempColors[2] = tsl::GradientColor(millis * 0.001f);
+    
+    // SOC voltage (if available)
+    if (socVoltageUv) {
+        sprintf(displayStrings[14], "%u mV", socVoltageUv / 1000U);
+    }
+    
+    // Power
+    sprintf(displayStrings[15], "%d mW", context->power[0]); // Now
+    sprintf(displayStrings[16], "%d mW", context->power[1]); // Avg
 }
 
 tsl::elm::Element* BaseMenuGui::baseUI()
 {
-    tsl::elm::List* list = new tsl::elm::List();
+    auto* list = new tsl::elm::List();
     this->listElement = list;
     this->listUI();
-
     return list;
 }
