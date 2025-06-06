@@ -27,6 +27,8 @@
 #define VERSION_Y LOGO_LABEL_Y-4
 #define VERSION_FONT_SIZE 15
 
+bool isUsingEOS;
+
 extern bool usingEOS(const std::string& filepath) {
     std::ifstream file(filepath, std::ios::binary);
     if (!file) return false;
@@ -68,7 +70,6 @@ void BaseGui::preDraw(tsl::gfx::Renderer* renderer)
     renderer->drawBitmap(LOGO_X, LOGO_Y, LOGO_WIDTH, LOGO_HEIGHT, logo_rgba_bin);
     renderer->drawString("overlay", false, LOGO_LABEL_X, LOGO_LABEL_Y, LOGO_LABEL_FONT_SIZE, renderer->a(TEXT_COLOR));
     renderer->drawString(TARGET_VERSION, false, VERSION_X, VERSION_Y, VERSION_FONT_SIZE, tsl::versionTextColor);
-    bool isUsingEOS = usingEOS(SYS_MODULE_PATH);
     if (isUsingEOS) {
         renderer->drawString("EOS mode", false, VERSION_X+82, VERSION_Y, VERSION_FONT_SIZE, tsl::warningTextColor);
     }
@@ -76,6 +77,7 @@ void BaseGui::preDraw(tsl::gfx::Renderer* renderer)
 
 tsl::elm::Element* BaseGui::createUI()
 {
+    isUsingEOS = usingEOS(SYS_MODULE_PATH);
     BaseFrame* rootFrame = new BaseFrame(this);
     rootFrame->setContent(this->baseUI());
     return rootFrame;
