@@ -27,7 +27,7 @@
 #define VERSION_Y LOGO_LABEL_Y-4
 #define VERSION_FONT_SIZE 15
 
-bool isUsingEOS;
+
 
 extern bool usingEOS(const std::string& filepath) {
     std::ifstream file(filepath, std::ios::binary);
