@@ -28,6 +28,8 @@ class BaseGui : public tsl::Gui
         tsl::elm::Element* createUI() override;
         virtual tsl::elm::Element* baseUI() = 0;
         virtual void refresh() {}
+    private:
+        bool isUsingEOS;
 };
 
 
