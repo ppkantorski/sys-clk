@@ -12,6 +12,32 @@
 #include "base_menu_gui.h"
 #include "fatal_gui.h"
 
+bool IsErista() { 
+    SetSysProductModel model = SetSysProductModel_Invalid;
+    setsysGetProductModel(&model);
+    
+    if (model == SetSysProductModel_Nx || \
+        model == SetSysProductModel_Copper)
+        return true;
+    
+    return false;
+}
+    
+    
+bool IsMariko() {
+    SetSysProductModel model = SetSysProductModel_Invalid;
+    setsysGetProductModel(&model);
+    
+    if (model == SetSysProductModel_Iowa || \
+        model == SetSysProductModel_Hoag || \
+        model == SetSysProductModel_Calcio || \
+        model == SetSysProductModel_Aula)
+        return true;
+    
+    return false;
+}
+
+
 BaseMenuGui::BaseMenuGui()
 {
     tsl::initializeThemeVars();
@@ -163,70 +189,70 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
 void BaseMenuGui::refresh()
 {
     std::uint64_t ticks = armGetSystemTick();
-
-    // Only run once every 1 000 000 000 ns (1 second)
+    // Only run once every 1 000 000 000 ns (1 second)
     if (armTicksToNs(ticks - this->lastContextUpdate) > 1'000'000'000UL)
     {
         this->lastContextUpdate = ticks;
-
         if (!this->context)
         {
             this->context = new SysClkContext;
         }
 
         // ─────────────────────────────────────────────────────────────────────────
-        // Initialize the regulator library once, then read all five voltages
+        // Initialize the regulator library once, then read all relevant voltages
         // ─────────────────────────────────────────────────────────────────────────
-
         rgltrInitialize();
 
         //
-        // We keep a static array of the five PcvPowerDomainId constants here.
-        // Because it’s declared "static const", it lives in .rodata (no stack cost).
+        // Define the “full” list of 5 domains in .rodata (no stack cost):
         //
-        static const PowerDomainId domainIds[5] = {
+        static const PowerDomainId domainIdsAll[5] = {
             PcvPowerDomainId_Max77621_Cpu,    // CPU voltage
             PcvPowerDomainId_Max77621_Gpu,    // GPU voltage
             PcvPowerDomainId_Max77812_Dram,   // EMC/DRAM voltage
             PcvPowerDomainId_Max77620_Sd0,    // SOC (Sd0) voltage
             PcvPowerDomainId_Max77620_Sd1     // VDD2 (Sd1) voltage
         };
-
         //
         // Pointers to your five u32 members in BaseMenuGui:
         //   cpuVoltageUv, gpuVoltageUv, emcVoltageUv, socVoltageUv, vddVoltageUv
         //
-        u32* voltagePtrs[5] = {
-            &cpuVoltageUv,
-            &gpuVoltageUv,
-            &emcVoltageUv,
-            &socVoltageUv,
-            &vddVoltageUv
+        u32* voltagePtrsAll[5] = {
+            &cpuVoltageUv,  // index 0 → CPU
+            &gpuVoltageUv,  // index 1 → GPU
+            &emcVoltageUv,  // index 2 → DRAM
+            &socVoltageUv,  // index 3 → SOC
+            &vddVoltageUv   // index 4 → VDD2
         };
 
-        // Loop exactly five times — once per domain
-        for (int i = 0; i < 5; i++)
+        //
+        // If we’re on Erista, skip the last two domains (Sd0 and Sd1).
+        // Otherwise, use all five domains.
+        //
+        const int domainCount = IsMariko() ? 5 : 3;
+
+        for (int i = 0; i < domainCount; i++)
         {
-            // 1) Zero the output variable:
-            *(voltagePtrs[i]) = 0;
+            // 1) Zero the output variable up front
+            *(voltagePtrsAll[i]) = 0;
 
             // 2) Create a fresh session struct for each domain:
             RgltrSession session = {};
 
-            // 3) Try to open a session on domainIds[i]:
-            if (R_SUCCEEDED(rgltrOpenSession(&session, domainIds[i])))
+            // 3) Try to open a session on domainIdsAll[i]:
+            if (R_SUCCEEDED(rgltrOpenSession(&session, domainIdsAll[i])))
             {
                 // 4) If open succeeded, attempt to read voltage:
-                if (R_FAILED(rgltrGetVoltage(&session, voltagePtrs[i])))
+                if (R_FAILED(rgltrGetVoltage(&session, voltagePtrsAll[i])))
                 {
-                    // On failure, leave *(voltagePtrs[i]) == 0
-                    *(voltagePtrs[i]) = 0;
+                    // On failure to read, leave *(voltagePtrsAll[i]) == 0
+                    *(voltagePtrsAll[i]) = 0;
                 }
 
                 // 5) Close the session before moving on
                 rgltrCloseSession(&session);
             }
-            // If rgltrOpenSession fails, the voltage stays at 0
+            // If rgltrOpenSession fails, the voltage stays at 0 automatically
         }
 
         rgltrExit();
@@ -234,7 +260,6 @@ void BaseMenuGui::refresh()
         // ─────────────────────────────────────────────────────────────────────────
         // Now update the SysClkContext exactly as before
         // ─────────────────────────────────────────────────────────────────────────
-
         Result rc = sysclkIpcGetCurrentContext(this->context);
         if (R_FAILED(rc))
         {
