@@ -34,6 +34,7 @@ static inline bool IsErista() {
 
 BaseMenuGui::BaseMenuGui() : tempColors{tsl::Color(0), tsl::Color(0), tsl::Color(0)}
 {
+    isUsingEOS = usingEOS(SYS_MODULE_PATH);
     tsl::initializeThemeVars();
     this->context = nullptr;
     this->lastContextUpdate = 0;
@@ -177,7 +178,7 @@ void BaseMenuGui::refresh()
     
     // Single regulator init/exit cycle
     if (R_SUCCEEDED(rgltrInitialize())) [[likely]] {
-        const int domainCount = IsMariko() ? 5 : 3;
+        const int domainCount = (IsMariko() && isUsingEOS) ? 5 : 3;
         
         // Unrolled voltage reading for maximum speed
         for (int i = 0; i < domainCount; ++i) {
