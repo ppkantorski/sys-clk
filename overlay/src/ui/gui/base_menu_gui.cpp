@@ -125,7 +125,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
     // Labels
     renderer->drawString(labels[5], false, positions[5], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
     renderer->drawString(labels[6], false, positions[6]-2, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-    renderer->drawString(labels[7], false, positions[7]+2, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+    renderer->drawString(labels[7], false, positions[7]+1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
     
     // Temperatures with color - use pre-computed colors
     renderer->drawString(displayStrings[11], false, dataPositions[0], y, SMALL_TEXT_SIZE, tempColors[0]);  // SOC
@@ -141,10 +141,10 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
     }
     
     // Power labels and values
-    renderer->drawString(labels[8], false, positions[8]-2-1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+    renderer->drawString(labels[8], false, positions[8]-2, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
     renderer->drawString(labels[9], false, positions[9]+2-1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
     
-    renderer->drawString(displayStrings[15], false, dataPositions[3]+2, y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // Power now
+    renderer->drawString(displayStrings[15], false, dataPositions[3]+2+1, y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // Power now
     renderer->drawString(displayStrings[16], false, dataPositions[4], y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // Power avg
 }
 
