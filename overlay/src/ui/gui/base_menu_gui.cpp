@@ -65,8 +65,8 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
     static constexpr const char* const labels[10] = {
         "App ID ", "Profile ", "CPU", "GPU", "MEM", "SOC", "PCB", "Skin", "Now", "Avg"
     };
-    static constexpr u32 positions[10] = {23, 257, 23, 159, 296, 23, 163, 304, 157, 305};
-    static constexpr u32 dataPositions[6] = {62, 199, 343, 196, 341, 320};
+    static constexpr u32 positions[10] = {23, 257, 23-1, 159-1, 296-1, 23-1, 163-1, 304-1, 157-1, 305-1};
+    static constexpr u32 dataPositions[6] = {62-1, 199-1, 343-1, 196-1, 341-1, 320-1};
     
     u32 y = 91;
     
