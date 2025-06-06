@@ -116,6 +116,8 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
         renderer->drawStringWithColoredSections(displayStrings[10], {""}, dataPositions[5], y, SMALL_TEXT_SIZE, tsl::infoTextColor, tsl::separatorColor);
     } else if (vddVoltageUv) {
         renderer->drawString(displayStrings[10], false, dataPositions[2], y, SMALL_TEXT_SIZE, tsl::infoTextColor);
+    } else if (emcVoltageUv) {
+        renderer->drawString(displayStrings[10], false, dataPositions[2], y, SMALL_TEXT_SIZE, tsl::infoTextColor);
     }
     
     y = 191; // Direct assignment (169 + 22)
