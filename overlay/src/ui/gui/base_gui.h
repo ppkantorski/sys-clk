@@ -17,6 +17,7 @@
 #include <algorithm>
 
 #include "../style.h"
+#include "../../ipc.h"
 
 class BaseGui : public tsl::Gui
 {
@@ -35,4 +36,5 @@ class BaseGui : public tsl::Gui
 
 #define SYS_MODULE_PATH "/atmosphere/contents/00FF0000636C6BFF/exefs.nsp"
 
+extern std::string getVersionString();
 extern bool usingEOS(const std::string& filepath);
