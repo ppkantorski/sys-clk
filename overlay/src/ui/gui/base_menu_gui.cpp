@@ -144,8 +144,8 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
     renderer->drawString(labels[8], false, positions[8]-2, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
     renderer->drawString(labels[9], false, positions[9]+2-1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
     
-    renderer->drawString(displayStrings[15], false, dataPositions[3]+2+1, y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // Power now
-    renderer->drawString(displayStrings[16], false, dataPositions[4], y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // Power avg
+    renderer->drawString(displayStrings[15], false, dataPositions[3]+2+1+1, y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // Power now
+    renderer->drawString(displayStrings[16], false, dataPositions[4]+1, y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // Power avg
 }
 
 // Optimized refresh - now does all the string formatting once per second
