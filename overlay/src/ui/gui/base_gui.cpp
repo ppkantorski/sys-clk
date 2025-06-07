@@ -28,7 +28,7 @@
 #define VERSION_FONT_SIZE 15
 
 std::string getVersionString() {
-    char buf[0x100] = {0};  // 256 bytes — safe for any expected version string
+    char buf[0x100] = "";  // 256 bytes — safe for any expected version string
     Result rc = sysclkIpcGetVersionString(buf, sizeof(buf));
     if (R_FAILED(rc) || buf[0] == '\0') {
         return "unknown";
