@@ -17,8 +17,8 @@
 
 void MainGui::listUI()
 {
-    bool isUsingEOS = usingEOS(SYS_MODULE_PATH);
-    
+    bool isUsingEOS = usingEOS();
+
     if (!isUsingEOS) {
         this->enabledToggle = new tsl::elm::ToggleListItem("Enable", false);
         enabledToggle->setStateChangedListener([this](bool state) {
