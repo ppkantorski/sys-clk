@@ -38,7 +38,7 @@ std::string getVersionString() {
 
 
 bool usingEOS() {
-    std::string versionString = getVersionString();
+    const std::string versionString = getVersionString();
 
     return versionString.find("eos") != std::string::npos;
 }
