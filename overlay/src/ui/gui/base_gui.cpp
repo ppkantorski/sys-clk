@@ -27,42 +27,20 @@
 #define VERSION_Y LOGO_LABEL_Y-4
 #define VERSION_FONT_SIZE 15
 
-
-
-extern bool usingEOS(const std::string& filepath) {
-    std::ifstream file(filepath, std::ios::binary);
-    if (!file) return false;
-
-    const std::string target = "eos";
-    const size_t bufferSize = 4096;
-    std::vector<char> buffer(bufferSize + target.size() - 1);
-
-    size_t bytesRead = 0;
-    while (file) {
-        // Retain overlap from previous buffer
-        if (bytesRead > 0) {
-            std::copy(buffer.end() - (target.size() - 1), buffer.end(), buffer.begin());
-        }
-
-        // Read next chunk
-        file.read(buffer.data() + (target.size() - 1), bufferSize);
-        bytesRead = file.gcount();
-        if (bytesRead == 0) break;
-
-        // Search for "eos" in the buffer
-        auto it = std::search(
-            buffer.begin(),
-            buffer.begin() + bytesRead + (target.size() - 1),
-            target.begin(),
-            target.end()
-        );
-
-        if (it != buffer.begin() + bytesRead + (target.size() - 1)) {
-            return true;
-        }
+std::string getVersionString() {
+    char buf[0x100] = {0};  // 256 bytes — safe for any expected version string
+    Result rc = sysclkIpcGetVersionString(buf, sizeof(buf));
+    if (R_FAILED(rc) || buf[0] == '\0') {
+        return "unknown";
     }
+    return std::string(buf);
+}
 
-    return false;
+
+bool usingEOS(const std::string& filepath) {
+    std::string versionString = getVersionString();
+
+    return versionString.find("eos") != std::string::npos;
 }
 
 void BaseGui::preDraw(tsl::gfx::Renderer* renderer)
