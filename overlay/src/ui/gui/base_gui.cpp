@@ -37,7 +37,7 @@ std::string getVersionString() {
 }
 
 
-bool usingEOS(const std::string& filepath) {
+bool usingEOS() {
     std::string versionString = getVersionString();
 
     return versionString.find("eos") != std::string::npos;
@@ -55,7 +55,7 @@ void BaseGui::preDraw(tsl::gfx::Renderer* renderer)
 
 tsl::elm::Element* BaseGui::createUI()
 {
-    isUsingEOS = usingEOS(SYS_MODULE_PATH);
+    isUsingEOS = usingEOS();
     BaseFrame* rootFrame = new BaseFrame(this);
     rootFrame->setContent(this->baseUI());
     return rootFrame;
