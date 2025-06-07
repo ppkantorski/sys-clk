@@ -33,8 +33,5 @@ class BaseGui : public tsl::Gui
         bool isUsingEOS;
 };
 
-
-#define SYS_MODULE_PATH "/atmosphere/contents/00FF0000636C6BFF/exefs.nsp"
-
 extern std::string getVersionString();
 extern bool usingEOS();
