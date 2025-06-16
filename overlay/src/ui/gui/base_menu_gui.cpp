@@ -324,5 +324,6 @@ tsl::elm::Element* BaseMenuGui::baseUI()
     auto* list = new tsl::elm::List();
     this->listElement = list;
     this->listUI();
+    list->jumpToItem("", "");
     return list;
 }
