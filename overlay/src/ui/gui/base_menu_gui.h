@@ -19,7 +19,6 @@ class BaseMenuGui : public BaseGui
     protected:
         SysClkContext* context;
         std::uint64_t lastContextUpdate;
-        tsl::elm::List* listElement;
         std::uint32_t cpuVoltageUv;
         std::uint32_t gpuVoltageUv;
         std::uint32_t emcVoltageUv;
@@ -30,6 +29,7 @@ class BaseMenuGui : public BaseGui
         BaseMenuGui();
         ~BaseMenuGui();
         void preDraw(tsl::gfx::Renderer* renderer) override;
+        tsl::elm::List* listElement;
         tsl::elm::Element* baseUI() override;
         void refresh() override;
         virtual void listUI() = 0;
