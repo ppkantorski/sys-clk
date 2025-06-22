@@ -60,4 +60,5 @@ void FreqChoiceGui::listUI()
         
         this->listElement->addItem(this->createFreqListItem(hz, (hz / 1000000) == (this->selectedHz / 1000000)));
     }
+    this->listElement->jumpToItem("", "");
 }
