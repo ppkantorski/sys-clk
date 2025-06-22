@@ -112,7 +112,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
     
     // Memory voltage - check if VDD is present
     if (emcVoltageUv && vddVoltageUv) {
-        renderer->drawStringWithColoredSections(displayStrings[10], {""}, dataPositions[5]-3, y, SMALL_TEXT_SIZE, tsl::infoTextColor, tsl::separatorColor);
+        renderer->drawStringWithColoredSections(displayStrings[10], false, {""}, dataPositions[5]-3, y, SMALL_TEXT_SIZE, tsl::infoTextColor, tsl::separatorColor);
     } else if (vddVoltageUv) {
         renderer->drawString(displayStrings[10], false, dataPositions[2]-3, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
     } else if (emcVoltageUv) {
@@ -324,6 +324,6 @@ tsl::elm::Element* BaseMenuGui::baseUI()
     auto* list = new tsl::elm::List();
     this->listElement = list;
     this->listUI();
-    list->jumpToItem("", "");
+    
     return list;
 }
