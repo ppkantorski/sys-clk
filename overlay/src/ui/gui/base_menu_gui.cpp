@@ -50,14 +50,12 @@ BaseMenuGui::BaseMenuGui() : tempColors{tsl::Color(0), tsl::Color(0), tsl::Color
     memset(displayStrings, 0, sizeof(displayStrings));
 }
 
-BaseMenuGui::~BaseMenuGui()
-{
+BaseMenuGui::~BaseMenuGui() {
     delete this->context; // delete handles nullptr automatically
 }
 
 // Fast preDraw - just renders pre-computed strings
-void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
-{
+void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer) {
     BaseGui::preDraw(renderer);
     if(!this->context) [[unlikely]] return;
     
@@ -66,7 +64,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
         "App ID ", "Profile", "CPU", "GPU", "MEM", "SOC", "PCB", "Skin", "Now", "Avg"
     };
 
-    static constexpr u32 dataPositions[6] = {62-3+3, 199-1, 343-1-3, 199-1, 341-1, 320-1};
+    static constexpr u32 dataPositions[6] = {63-3+3, 200-1, 344-1-3, 200-1, 342-1, 321-1};
     
     static u32 labelWidths[10];
     static bool positionsInitialized = false;
@@ -77,27 +75,27 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
         }
         positionsInitialized = true;
     }
-    static u32 positions[10] = {23-1, 309-labelWidths[1], 23-1, 191-labelWidths[3], 331-labelWidths[4], 23-1, 191 - labelWidths[6], 331-labelWidths[7], 191 - labelWidths[8], 331-labelWidths[9]};
+    static u32 positions[10] = {24-1, 310-labelWidths[1], 24-1, 192-labelWidths[3], 332-labelWidths[4], 24-1, 192 - labelWidths[6], 332-labelWidths[7], 192 - labelWidths[8], 332-labelWidths[9]};
 
     static u32 maxProfileValueWidth = renderer->getTextDimensions("Official Charger", false, SMALL_TEXT_SIZE).first; // longest word
 
     u32 y = 91;
     
     // === TOP SECTION ===
-    renderer->drawRoundedRect(13, 70-2, 420, 30+2+1, 10.0f, renderer->aWithOpacity(tsl::tableBGColor));
+    renderer->drawRoundedRect(14, 70-2, 420, 30+2+1, 10.0f, renderer->aWithOpacity(tsl::tableBGColor));
     
     // App ID - use pre-formatted string
     renderer->drawString(labels[0], false, positions[0], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-    renderer->drawString(displayStrings[0], false, 82, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
+    renderer->drawString(displayStrings[0], false, 83, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
     
     // Profile - use pre-formatted string
-    renderer->drawString(labels[1], false, 422 - maxProfileValueWidth - labelWidths[1] - 9, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-    renderer->drawString(displayStrings[1], false, 422 - maxProfileValueWidth, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
+    renderer->drawString(labels[1], false, 423 - maxProfileValueWidth - labelWidths[1] - 9, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+    renderer->drawString(displayStrings[1], false, 423 - maxProfileValueWidth, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
     
     y = 129; // Direct assignment instead of += 38
     
     // === MAIN DATA SECTION ===
-    renderer->drawRoundedRect(13, 106-2, 420, 116+3, 10.0f, renderer->aWithOpacity(tsl::tableBGColor));
+    renderer->drawRoundedRect(14, 106-2, 420, 116+3, 10.0f, renderer->aWithOpacity(tsl::tableBGColor));
     
     // === FREQUENCY SECTION ===
     // Labels first (better cache locality)
@@ -125,7 +123,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
     
     // Memory voltage - check if VDD is present
     if (emcVoltageUv && vddVoltageUv) {
-        renderer->drawStringWithColoredSections(displayStrings[10], false, {""}, dataPositions[5]-3, y, SMALL_TEXT_SIZE, tsl::infoTextColor, tsl::separatorColor);
+        renderer->drawStringWithColoredSections(displayStrings[10], false, {""}, dataPositions[5]-2, y, SMALL_TEXT_SIZE, tsl::infoTextColor, tsl::separatorColor);
     } else if (vddVoltageUv) {
         renderer->drawString(displayStrings[10], false, dataPositions[2], y, SMALL_TEXT_SIZE, tsl::infoTextColor);
     } else if (emcVoltageUv) {
@@ -137,7 +135,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
     // === TEMPERATURE SECTION ===
     // Labels
     renderer->drawString(labels[5], false, positions[5], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-    renderer->drawString(labels[6], false, positions[6]-2, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+    renderer->drawString(labels[6], false, positions[6]-1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
     renderer->drawString(labels[7], false, positions[7], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
     
     // Temperatures with color - use pre-computed colors
@@ -154,7 +152,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer)
     }
     
     // Power labels and values
-    renderer->drawString(labels[8], false, positions[8]-2, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
+    renderer->drawString(labels[8], false, positions[8]-1, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
     renderer->drawString(labels[9], false, positions[9], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
     
     renderer->drawString(displayStrings[15], false, dataPositions[3], y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // Power now
