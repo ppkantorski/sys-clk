@@ -21,19 +21,23 @@ TARGET		:=	sys-clk-overlay
 BUILD		:=	build
 OUTDIR		:=	out
 RESOURCES	:=	res
-SOURCES		:=	lib/libultrahand/libultra/source src src/ui/gui src/ui/elements ../common/src ../common/src/client
+SOURCES		:=	src src/ui/gui src/ui/elements ../common/src ../common/src/client
 DATA		:=	data
-INCLUDES	:=	../common/include lib/libultrahand/libultra/include lib/libultrahand/libtesla/include
+INCLUDES	:=	../common/include
 EXEFS_SRC	:=	exefs_src
 
 APP_TITLE	:=	sys-clk
 NO_ICON		:=	1
 
+# This location should reflect where you place the libultrahand directory (lib can vary between projects).
+include ${TOPDIR}/lib/libultrahand/ultrahand.mk
+
+
 #---------------------------------------------------------------------------------
 # version control constants
 #---------------------------------------------------------------------------------
 #TARGET_VERSION	:= $(shell git describe --dirty --always --tags)
-APP_VERSION		:= 2.0.1+r8
+APP_VERSION		:= 2.0.1+r9
 TARGET_VERSION := $(APP_VERSION)
 
 #---------------------------------------------------------------------------------
