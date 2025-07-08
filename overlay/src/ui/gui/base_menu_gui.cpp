@@ -61,7 +61,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer) {
     
     // All constants pre-calculated and cached
     static constexpr const char* const labels[10] = {
-        "App ID ", "Profile", "CPU", "GPU", "MEM", "SOC", "PCB", "Skin", "Now", "Avg"
+        "App ID", "Profile", "CPU", "GPU", "MEM", "SOC", "PCB", "Skin", "Now", "Avg"
     };
 
     static constexpr u32 dataPositions[6] = {63-3+3, 200-1, 344-1-3, 200-1, 342-1, 321-1};
@@ -86,7 +86,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer) {
     
     // App ID - use pre-formatted string
     renderer->drawString(labels[0], false, positions[0], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
-    renderer->drawString(displayStrings[0], false, 83, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
+    renderer->drawString(displayStrings[0], false, positions[0] + labelWidths[0] + 6, y, SMALL_TEXT_SIZE, tsl::infoTextColor);
     
     // Profile - use pre-formatted string
     renderer->drawString(labels[1], false, 423 - maxProfileValueWidth - labelWidths[1] - 9, y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
