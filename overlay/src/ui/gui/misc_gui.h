@@ -1,7 +1,4 @@
-// Additional config settings designed for retronx-team's sys-clk 2.0.1
-
 #pragma once
-
 #include "../../ipc.h"
 #include "base_menu_gui.h"
 #include <unordered_map>
@@ -14,7 +11,6 @@ class MiscGui : public BaseMenuGui
         ~MiscGui();
         void listUI() override;
         void refresh() override;
-
     protected:
         
         std::unordered_map<std::string, tsl::elm::ToggleListItem*> configToggles;
@@ -24,8 +20,11 @@ class MiscGui : public BaseMenuGui
         void updateConfigToggles();
         bool getConfigValue(const std::string& iniKey);
         void setConfigValue(const std::string& iniKey, bool value);
+        int getConfigIntValue(const std::string& iniKey, int defaultValue);
+        void setConfigIntValue(const std::string& iniKey, int value);
         
-        tsl::elm::ToggleListItem* enabledToggle; // Add this line
+        tsl::elm::ToggleListItem* enabledToggle;
+        tsl::elm::NamedStepTrackBar* gpuDvfsTrackbar;  // Add this line
         
         u8 frameCounter = 60;
 };

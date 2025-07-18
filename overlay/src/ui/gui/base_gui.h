@@ -33,5 +33,6 @@ class BaseGui : public tsl::Gui
         bool isUsingEOS;
 };
 
+
 extern std::string getVersionString();
 extern bool usingEOS();

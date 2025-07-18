@@ -92,7 +92,6 @@ void MainGui::listUI()
 void MainGui::refresh()
 {
     BaseMenuGui::refresh();
-
     //if(this->context)
     //{
     //    this->enabledToggle->setState(this->context->enabled);
