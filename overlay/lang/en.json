@@ -10,6 +10,9 @@
     "Auto CPU Boost": "Auto CPU Boost",
     "Sync ReverseNX": "Sync ReverseNX",
     "GPU DVFS": "GPU DVFS",
+    "Off": "Off",
+    "Official Service Method": "Official Service Method",
+    "Hijack Method": "Hijack Method",
     "App ID": "App ID",
     "EOS mode": "EOS mode",
     "Skin": "Skin",
@@ -22,8 +25,5 @@
     "USB Charger": "USB Charger",
     "Memory": "Memory",
     "Do not override": "Do not overrride",
-    "Profile": "Profile",
-    "Off": "Off",
-    "Official Service Method": "Official Service Method",
-    "Hijack Method": "Hijack Method"
+    "Profile": "Profile"
 }
