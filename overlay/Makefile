@@ -57,8 +57,8 @@ UI_OVERRIDE_PATH := /config/sys-clk/
 CFLAGS += -DUI_OVERRIDE_PATH="\"$(UI_OVERRIDE_PATH)\""
 
 # Disable fstream
-NO_FSTREAM_DIRECTIVE := 1
-CFLAGS += -DNO_FSTREAM_DIRECTIVE=$(NO_FSTREAM_DIRECTIVE)
+#NO_FSTREAM_DIRECTIVE := 1
+#CFLAGS += -DNO_FSTREAM_DIRECTIVE=$(NO_FSTREAM_DIRECTIVE)
 
 
 CXXFLAGS	:= $(CFLAGS) -fno-exceptions -std=gnu++20
@@ -150,6 +150,8 @@ all: $(OUTPUT).ovl
 $(OUTPUT).ovl: $(OUTPUT).elf $(OUTPUT).nacp
 	@elf2nro $< $@ --nacp=$(OUTPUT).nacp
 	@echo "built ... $(notdir $(OUTPUT).ovl)"
+	@printf 'ULTR' >> $@
+	@printf "Ultrahand signature has been added.\n"
 
 $(OUTPUT).elf: $(OFILES)
 
