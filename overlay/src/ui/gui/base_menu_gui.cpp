@@ -95,7 +95,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer) {
     y = 129; // Direct assignment instead of += 38
     
     // === MAIN DATA SECTION ===
-    renderer->drawRoundedRect(14, 106-2, 420, 116+2, 10.0f, renderer->aWithOpacity(tsl::tableBGColor));
+    renderer->drawRoundedRect(14, 106, 420, 116, 10.0f, renderer->aWithOpacity(tsl::tableBGColor));
     
     // === FREQUENCY SECTION ===
     // Labels first (better cache locality)
@@ -123,7 +123,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer) {
     
     // Memory voltage - check if VDD is present
     if (emcVoltageUv && vddVoltageUv) {
-        renderer->drawStringWithColoredSections(displayStrings[10], false, {""}, dataPositions[5]-2, y, SMALL_TEXT_SIZE, tsl::infoTextColor, tsl::separatorColor);
+        renderer->drawStringWithColoredSections(displayStrings[10], false, {""}, dataPositions[5]-16, y, SMALL_TEXT_SIZE, tsl::infoTextColor, tsl::separatorColor);
     } else if (vddVoltageUv) {
         renderer->drawString(displayStrings[10], false, dataPositions[2], y, SMALL_TEXT_SIZE, tsl::infoTextColor);
     } else if (emcVoltageUv) {
@@ -300,9 +300,12 @@ void BaseMenuGui::refresh()
     
     // Memory voltage (handle VDD case)
     if (emcVoltageUv && vddVoltageUv) {
-        sprintf(displayStrings[10], "%u%u mV", vddVoltageUv / 1000U, emcVoltageUv / 1000U);
+        //sprintf(displayStrings[10], "%u%u mV", vddVoltageUv / 1000U, emcVoltageUv / 1000U);
+        //sprintf(displayStrings[10], "%u%.1f mV", vddVoltageUv / 1000U, emcVoltageUv / 1000.0f);
+        sprintf(displayStrings[10], "%u.%u%u mV", vddVoltageUv / 1000U, (vddVoltageUv % 1000U) / 100U, emcVoltageUv / 1000U);
     } else if (vddVoltageUv) {
-        sprintf(displayStrings[10], "%u mV", vddVoltageUv / 1000U);
+        //sprintf(displayStrings[10], "%u mV", vddVoltageUv / 1000U);
+        sprintf(displayStrings[10], "%u.%u mV", vddVoltageUv / 1000U, (vddVoltageUv % 1000U) / 100U);
     } else if (emcVoltageUv) {
         sprintf(displayStrings[10], "%u mV", emcVoltageUv / 1000U);
     }
