@@ -47,7 +47,7 @@ void BaseGui::preDraw(tsl::gfx::Renderer* renderer)
 {
     renderer->drawBitmap(LOGO_X, LOGO_Y, LOGO_WIDTH, LOGO_HEIGHT, logo_rgba_bin);
     renderer->drawString("overlay", false, LOGO_LABEL_X, LOGO_LABEL_Y, LOGO_LABEL_FONT_SIZE, renderer->a(TEXT_COLOR));
-    renderer->drawString(TARGET_VERSION, false, VERSION_X, VERSION_Y, VERSION_FONT_SIZE, tsl::versionTextColor);
+    renderer->drawString(TARGET_VERSION, false, VERSION_X, VERSION_Y, VERSION_FONT_SIZE, tsl::bannerVersionTextColor);
     if (isUsingEOS) {
         renderer->drawString("EOS mode", false, VERSION_X+82, VERSION_Y, VERSION_FONT_SIZE, tsl::warningTextColor);
     }

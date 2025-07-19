@@ -24,7 +24,7 @@ FreqChoiceGui::FreqChoiceGui(std::uint32_t selectedHz, std::uint32_t* hzList, st
 
 tsl::elm::ListItem* FreqChoiceGui::createFreqListItem(std::uint32_t hz, bool selected)
 {
-    tsl::elm::ListItem* listItem = new tsl::elm::ListItem(formatListFreqHz(hz));
+    tsl::elm::ListItem* listItem = new tsl::elm::ListItem(formatListFreqHz(hz), "", true);
     listItem->setValue(selected ? "\uE14B" : "");
 
     listItem->setClickListener([this, hz](u64 keys) {
@@ -60,6 +60,5 @@ void FreqChoiceGui::listUI()
         
         this->listElement->addItem(this->createFreqListItem(hz, (hz / 1000000) == (this->selectedHz / 1000000)));
     }
-    
     this->listElement->jumpToItem("", "");
 }
