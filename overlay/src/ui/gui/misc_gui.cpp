@@ -383,7 +383,7 @@ void MiscGui::listUI()
     addConfigToggle("uncapped_clocks", "Uncapped Clocks");
     addConfigToggle("override_boost_mode", "Override Boost Mode");
     addConfigToggle("auto_cpu_boost", "Auto CPU Boost");
-    addConfigToggle("sync_reversenx", "Sync ReverseNX");
+    addConfigToggle("reversenx_sync", "Sync ReverseNX");
     
     // Add GPU DVFS as a NamedStepTrackBar with V2 style
     this->gpuDvfsTrackbar = new tsl::elm::NamedStepTrackBar("", {
@@ -393,7 +393,7 @@ void MiscGui::listUI()
     }, true, "GPU DVFS");
     
     // Set initial value (default is 0 if not set)
-    int currentDvfsValue = getConfigIntValue("gpu_dvfs", 0);
+    int currentDvfsValue = getConfigIntValue("gpu_dvfs", 1);
     // Ensure the value is within valid range (0-2)
     currentDvfsValue = std::max(0, std::min(2, currentDvfsValue));
     this->gpuDvfsTrackbar->setProgress(static_cast<u8>(currentDvfsValue));
@@ -401,7 +401,7 @@ void MiscGui::listUI()
     // Set up the value change listener to update the INI file
     this->gpuDvfsTrackbar->setValueChangedListener([this](u8 value) {
         // Ensure value is within expected range
-        int intValue = static_cast<int>(std::min(static_cast<u8>(2), value));
+        const int intValue = static_cast<int>(std::min(static_cast<u8>(2), value));
         setConfigIntValue("gpu_dvfs", intValue);
         this->lastContextUpdate = armGetSystemTick();
     });
@@ -426,7 +426,7 @@ void MiscGui::refresh() {
         
         // Update GPU DVFS trackbar
         if (this->gpuDvfsTrackbar != nullptr) {
-            int currentDvfsValue = getConfigIntValue("gpu_dvfs", 0);
+            int currentDvfsValue = getConfigIntValue("gpu_dvfs", 1);
             // Ensure the value is within valid range (0-2)
             currentDvfsValue = std::max(0, std::min(2, currentDvfsValue));
             this->gpuDvfsTrackbar->setProgress(static_cast<u8>(currentDvfsValue));
