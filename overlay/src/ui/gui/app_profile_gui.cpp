@@ -59,10 +59,23 @@ void AppProfileGui::addModuleListItem(SysClkProfile profile, SysClkModule module
             this->openFreqChoiceGui(listItem, profile, module);
             return true;
         }
-
+        else if((keys & HidNpadButton_Y) == HidNpadButton_Y)
+        {
+            // Reset to "Do not override" (0 MHz)
+            this->profileList->mhzMap[profile][module] = 0;
+            listItem->setValue(formatListFreqMHz(0));
+            
+            // Save the updated profile
+            Result rc = sysclkIpcSetProfiles(this->applicationId, this->profileList);
+            if(R_FAILED(rc))
+            {
+                FatalGui::openWithResultCode("sysclkIpcSetProfiles", rc);
+                return false;
+            }
+            return true;
+        }
         return false;
     });
-
     this->listElement->addItem(listItem);
 }
 

@@ -51,17 +51,34 @@ void GlobalOverrideGui::addModuleListItem(SysClkModule module)
 {
     tsl::elm::ListItem* listItem = new tsl::elm::ListItem(sysclkFormatModule(module, true));
     listItem->setValue(formatListFreqMHz(0));
-
     listItem->setClickListener([this, module](u64 keys) {
         if((keys & HidNpadButton_A) == HidNpadButton_A)
         {
             this->openFreqChoiceGui(module);
             return true;
         }
-
+        else if((keys & HidNpadButton_Y) == HidNpadButton_Y)
+        {
+            // Reset override to "Do not override" (0 Hz)
+            Result rc = sysclkIpcSetOverride(module, 0);
+            if(R_FAILED(rc))
+            {
+                FatalGui::openWithResultCode("sysclkIpcSetOverride", rc);
+                return false;
+            }
+            
+            // Update context and tracking variables
+            this->lastContextUpdate = armGetSystemTick();
+            this->context->overrideFreqs[module] = 0;
+            this->listHz[module] = 0;
+            
+            // Update display
+            this->listItems[module]->setValue(formatListFreqHz(0));
+            
+            return true;
+        }
         return false;
     });
-
     this->listElement->addItem(listItem);
     this->listItems[module] = listItem;
 }
