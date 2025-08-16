@@ -23,6 +23,11 @@
     "Charging": "Bezig met opladen",
     "Official Charger": "Officiële oplader",
     "USB Charger": "USB-oplader",
+    "Docked   Reset": "Docked   Reset",
+    "Handheld   Reset": "Handheld   Reset",
+    "Charging   Reset": "Charging   Reset",
+    "Official Charger   Reset": "Official Charger   Reset",
+    "USB Charger   Reset": "USB Charger   Reset",
     "Memory": "Geheugen",
     "Do not override": "Niet overschrijven",
     "Profile": "Profiel"
