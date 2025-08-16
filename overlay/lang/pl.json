@@ -23,6 +23,11 @@
     "Charging": "Ładowanie",
     "Official Charger": "Oficjalna ładowarka",
     "USB Charger": "Ładowarka USB",
+    "Docked   Reset": "Docked   Reset",
+    "Handheld   Reset": "Handheld   Reset",
+    "Charging   Reset": "Charging   Reset",
+    "Official Charger   Reset": "Official Charger   Reset",
+    "USB Charger   Reset": "USB Charger   Reset",
     "Memory": "Pamięć",
     "Do not override": "Nie nadpisuj",
     "Profile": "Profil"
