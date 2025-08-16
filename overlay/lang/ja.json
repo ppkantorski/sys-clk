@@ -23,6 +23,11 @@
     "Charging": "充電中",
     "Official Charger": "公式充電器",
     "USB Charger": "USB充電器",
+    "Docked   Reset": "Docked   Reset",
+    "Handheld   Reset": "Handheld   Reset",
+    "Charging   Reset": "Charging   Reset",
+    "Official Charger   Reset": "Official Charger   Reset",
+    "USB Charger   Reset": "USB Charger   Reset",
     "Memory": "メモリ",
     "Do not override": "オーバーライドしない",
     "Profile": "プロフィール"
