@@ -23,6 +23,11 @@
     "Charging": "충전 중",
     "Official Charger": "공식 충전기",
     "USB Charger": "USB 충전기",
+    "Docked   Reset": "Docked   Reset",
+    "Handheld   Reset": "Handheld   Reset",
+    "Charging   Reset": "Charging   Reset",
+    "Official Charger   Reset": "Official Charger   Reset",
+    "USB Charger   Reset": "USB Charger   Reset",
     "Memory": "메모리",
     "Do not override": "오버라이드 안 함",
     "Profile": "프로필"
