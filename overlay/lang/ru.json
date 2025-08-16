@@ -23,6 +23,11 @@
     "Charging": "На зарядке",
     "Official Charger": "Офиц. зарядка",
     "USB Charger": "USB зарядка",
+    "Docked   Reset": "Docked   Reset",
+    "Handheld   Reset": "Handheld   Reset",
+    "Charging   Reset": "Charging   Reset",
+    "Official Charger   Reset": "Official Charger   Reset",
+    "USB Charger   Reset": "USB Charger   Reset",
     "Memory": "RAM",
     "Do not override": "По умолчанию",
     "Profile": "Профиль"
