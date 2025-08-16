@@ -23,6 +23,11 @@
     "Charging": "充电中",
     "Official Charger": "官方充电器",
     "USB Charger": "USB充电器",
+    "Docked   Reset": "Docked   Reset",
+    "Handheld   Reset": "Handheld   Reset",
+    "Charging   Reset": "Charging   Reset",
+    "Official Charger   Reset": "Official Charger   Reset",
+    "USB Charger   Reset": "USB Charger   Reset",
     "Memory": "内存",
     "Do not override": "不覆盖",
     "Profile": "配置文件"
