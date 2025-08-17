@@ -81,7 +81,7 @@ void AppProfileGui::addModuleListItem(SysClkProfile profile, SysClkModule module
 
 void AppProfileGui::addProfileUI(SysClkProfile profile)
 {
-    this->listElement->addItem(new tsl::elm::CategoryHeader(sysclkFormatProfile(profile, true) + std::string(" ") + ult::DIVIDER_SYMBOL + " \uE0E3 Reset"));
+    this->listElement->addItem(new tsl::elm::CategoryHeader(sysclkFormatProfile(profile, true) + std::string(" ") + ult::DIVIDER_SYMBOL + "  Reset"));
     this->addModuleListItem(profile, SysClkModule_CPU);
     this->addModuleListItem(profile, SysClkModule_GPU);
     this->addModuleListItem(profile, SysClkModule_MEM);
