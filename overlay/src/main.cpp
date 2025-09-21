@@ -59,17 +59,17 @@ class AppOverlay : public tsl::Overlay
                 );
             }
 
-            if(SYSCLK_IPC_API_VERSION != apiVersion)
-            {
-                return initially<FatalGui>(
-                    "Overlay not compatible with\n\n"
-                    "the running sys-clk version.\n\n"
-                    "\n"
-                    "Please make sure everything is\n\n"
-                    "installed and up to date.",
-                    ""
-                );
-            }
+            //if(SYSCLK_IPC_API_VERSION != apiVersion)
+            //{
+            //    return initially<FatalGui>(
+            //        "Overlay not compatible with\n\n"
+            //        "the running sys-clk version.\n\n"
+            //        "\n"
+            //        "Please make sure everything is\n\n"
+            //        "installed and up to date.",
+            //        ""
+            //    );
+            //}
 
             return initially<MainGui>();
         }

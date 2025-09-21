@@ -24,7 +24,8 @@ class MiscGui : public BaseMenuGui
         void setConfigIntValue(const std::string& iniKey, int value);
         
         tsl::elm::ToggleListItem* enabledToggle;
-        tsl::elm::NamedStepTrackBar* gpuDvfsTrackbar;  // Add this line
+        tsl::elm::NamedStepTrackBar* autoGPUVminTrackbar;  // Add this line
+        tsl::elm::NamedStepTrackBar* gpuVminOffsetTrackbar;  // Add this line
         
         u8 frameCounter = 60;
 };
