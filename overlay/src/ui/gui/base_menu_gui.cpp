@@ -159,6 +159,8 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer) {
     renderer->drawString(displayStrings[16], false, dataPositions[4], y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // Power avg
 }
 
+Result sysclkCheck = 1;
+
 // Optimized refresh - now does all the string formatting once per second
 void BaseMenuGui::refresh()
 {
@@ -176,7 +178,26 @@ void BaseMenuGui::refresh()
     }
 
     
-    {
+    //if (R_SUCCEEDED(sysclkCheck)) {
+    //    SysClkContext sysclkCTX;
+    if (R_SUCCEEDED(sysclkIpcGetCurrentContext(this->context))) {
+        if (isUsingEOS) {
+            cpuVoltageUv = this->context->realVolts[0]; 
+            gpuVoltageUv = this->context->realVolts[1]; 
+            socVoltageUv = this->context->realVolts[3];
+            
+            // Unpack realVolts[2] into separate EMC and VDD voltages
+            const u32 packed = this->context->realVolts[2];
+            const float vdd2_mV_f = packed / 100000.0f;     // Float division preserves decimals
+            const u32 vddq_mV = (packed % 10000) / 10;      // VDDQ can stay integer
+            
+            vddVoltageUv = (u32)(vdd2_mV_f * 1000);  // Convert 1212.5 mV → 1212500 µV
+            emcVoltageUv = vddq_mV * 1000;           // Convert to µV
+        }
+    }
+    //}
+
+    if (!isUsingEOS) {
         // === ULTRA-FAST VOLTAGE READING ===
         // Pre-computed domain configuration based on hardware
         static constexpr PowerDomainId domains[] = {
