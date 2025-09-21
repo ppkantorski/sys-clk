@@ -37,7 +37,7 @@ include ${TOPDIR}/lib/libultrahand/ultrahand.mk
 # version control constants
 #---------------------------------------------------------------------------------
 #TARGET_VERSION	:= $(shell git describe --dirty --always --tags)
-APP_VERSION		:= 2.0.1+r11
+APP_VERSION		:= 2.0.1+r12
 TARGET_VERSION := $(APP_VERSION)
 
 #---------------------------------------------------------------------------------
