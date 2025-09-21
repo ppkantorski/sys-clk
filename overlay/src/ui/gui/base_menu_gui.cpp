@@ -175,89 +175,53 @@ void BaseMenuGui::refresh()
         this->context = new SysClkContext;
     }
 
-    // === ULTRA-FAST VOLTAGE READING ===
-    // Pre-computed domain configuration based on hardware
-    static const PowerDomainId domains[] = {
-        PcvPowerDomainId_Max77621_Cpu,    // [0] CPU
-        PcvPowerDomainId_Max77621_Gpu,    // [1] GPU  
-        PcvPowerDomainId_Max77812_Dram,   // [2] EMC/DRAM - Mariko only
-        PcvPowerDomainId_Max77620_Sd0,    // [3] SOC - EOS only
-        PcvPowerDomainId_Max77620_Sd1     // [4] VDD2 - EOS only
-    };
     
-    // Voltage array for direct indexing
-    u32* voltages[] = {&cpuVoltageUv, &gpuVoltageUv, &emcVoltageUv, &socVoltageUv, &vddVoltageUv};
-    
-    // Single regulator init/exit cycle
-    if (R_SUCCEEDED(rgltrInitialize())) [[likely]] {
-        if (IsMariko()) {
-            if (isUsingEOS) {
-                // Mariko with EOS: all 5 domains
-                for (int i = 0; i < 5; ++i) {
-                    RgltrSession session;
-                    if (R_SUCCEEDED(rgltrOpenSession(&session, domains[i]))) [[likely]] {
-                        if (R_FAILED(rgltrGetVoltage(&session, voltages[i]))) {
-                            *voltages[i] = 0;
-                        }
-                        rgltrCloseSession(&session);
-                    } else {
-                        *voltages[i] = 0;
-                    }
-                }
-            } else {
-                // Mariko without EOS: CPU, GPU, DRAM only (no Sd0/Sd1)
-                for (int i = 0; i < 3; ++i) {
-                    RgltrSession session;
-                    if (R_SUCCEEDED(rgltrOpenSession(&session, domains[i]))) [[likely]] {
-                        if (R_FAILED(rgltrGetVoltage(&session, voltages[i]))) {
-                            *voltages[i] = 0;
-                        }
-                        rgltrCloseSession(&session);
-                    } else {
-                        *voltages[i] = 0;
-                    }
-                }
-                socVoltageUv = vddVoltageUv = 0;
-            }
-        } else {
-            // Erista
-            if (isUsingEOS) {
-                // Erista with EOS: CPU, GPU, SOC, VDD (no DRAM)
-                for (int i = 0; i < 5; ++i) {
-                    if (i == 2) continue; // Skip DRAM domain
-                    
-                    RgltrSession session;
-                    if (R_SUCCEEDED(rgltrOpenSession(&session, domains[i]))) [[likely]] {
-                        if (R_FAILED(rgltrGetVoltage(&session, voltages[i]))) {
-                            *voltages[i] = 0;
-                        }
-                        rgltrCloseSession(&session);
-                    } else {
-                        *voltages[i] = 0;
-                    }
-                }
-                emcVoltageUv = 0; // Erista never supports DRAM
-            } else {
-                // Erista without EOS: CPU and GPU only
-                for (int i = 0; i < 2; ++i) {
-                    RgltrSession session;
-                    if (R_SUCCEEDED(rgltrOpenSession(&session, domains[i]))) [[likely]] {
-                        if (R_FAILED(rgltrGetVoltage(&session, voltages[i]))) {
-                            *voltages[i] = 0;
-                        }
-                        rgltrCloseSession(&session);
-                    } else {
-                        *voltages[i] = 0;
-                    }
-                }
-                emcVoltageUv = socVoltageUv = vddVoltageUv = 0;
-            }
-        }
+    {
+        // === ULTRA-FAST VOLTAGE READING ===
+        // Pre-computed domain configuration based on hardware
+        static constexpr PowerDomainId domains[] = {
+            PcvPowerDomainId_Max77621_Cpu,    // [0] CPU
+            PcvPowerDomainId_Max77621_Gpu,    // [1] GPU  
+            PcvPowerDomainId_Max77812_Dram,   // [2] EMC/DRAM - Mariko only
+            PcvPowerDomainId_Max77620_Sd0,    // [3] SOC - EOS only
+            PcvPowerDomainId_Max77620_Sd1     // [4] VDD2 - EOS only
+        };
         
-        rgltrExit();
-    } else {
-        // Zero all voltages on regulator failure
-        memset(&cpuVoltageUv, 0, sizeof(u32) * 5);
+        // Voltage array for direct indexing
+        u32* voltages[] = {&cpuVoltageUv, &gpuVoltageUv, &emcVoltageUv, &socVoltageUv, &vddVoltageUv};
+
+        // Helper to safely read a voltage or set it to 0
+        auto readVoltage = [&](int idx) {
+            RgltrSession session;
+            if (R_SUCCEEDED(rgltrOpenSession(&session, domains[idx]))) {
+                if (R_FAILED(rgltrGetVoltage(&session, voltages[idx]))) {
+                    *voltages[idx] = 0;
+                }
+                rgltrCloseSession(&session);
+            } else {
+                *voltages[idx] = 0;
+            }
+        };
+        
+        // Single regulator init/exit cycle
+        if (R_SUCCEEDED(rgltrInitialize())) [[likely]] {
+            for (int i = 0; i < 5; ++i) {
+                if (!IsMariko() && i == 2) {
+                    *voltages[i] = 0; // Skip DRAM domain for Erista
+                    continue;
+                }
+                readVoltage(i);
+            }
+        
+            if (!IsMariko()) {
+                emcVoltageUv = 0; // Erista never supports DRAM
+            }
+        
+            rgltrExit();
+        } else {
+            // Zero all voltages on regulator failure
+            memset(&cpuVoltageUv, 0, sizeof(u32) * 5);
+        }
     }
 
     // === SYSCLK CONTEXT UPDATE ===
