@@ -7,7 +7,7 @@
     "Settings": "Instellingen",
     "Enable": "Inschakelen",
     "Uncapped Clocks": "Ongelimiteerde kloksnelheden",
-    "Boost GPU Override": "Boost GPU Override",
+    "Boost GPU Override": "Boost GPU Overschrijven",
     "Auto CPU Boost": "Automatische CPU-boost",
     "Sync ReverseNX": "ReverseNX synchroniseren",
     "Auto GPU Vmin": "Automatische GPU Vmin",
@@ -33,8 +33,8 @@
     "Memory": "Geheugen",
     "Do not override": "Niet overschrijven",
     "Profile": "Profiel",
-    "Fatal error": "Fatal error",
-    "Could not connect to sys-clk.\n\n\nPlease make sure everything is\n\ncorrectly installed and enabled.": "Could not connect to sys-clk.\n\n\nPlease make sure everything is\n\ncorrectly installed and enabled.",
-    "sys-clk is not running.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled.": "sys-clk is not running.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled.",
-    "Could not connect to sys-clk.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled.": "Could not connect to sys-clk.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled."
+    "Fatal error": "Fatale fout",
+    "Could not connect to sys-clk.\n\n\nPlease make sure everything is\n\ncorrectly installed and enabled.": "Geen verbinding met sys-clk.\n\n\nControleer installatie\n\nen activering.",
+    "sys-clk is not running.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled.": "sys-clk draait niet.\n\n\nControleer installatie\n\nen activering.",
+    "Could not connect to sys-clk.\n\n\nPlease make sure everything is\n\ncorrectly installed and enabled.": "Geen verbinding met sys-clk.\n\n\nControleer installatie\n\nen activering."
 }
