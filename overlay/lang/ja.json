@@ -32,5 +32,9 @@
     "USB Charger   Reset": "USB充電器   リセット",
     "Memory": "メモリ",
     "Do not override": "オーバーライドしない",
-    "Profile": "プロフィール"
+    "Profile": "プロフィール",
+    "Fatal error": "Fatal error",
+    "Could not connect to sys-clk.\n\n\nPlease make sure everything is\n\ncorrectly installed and enabled.": "Could not connect to sys-clk.\n\n\nPlease make sure everything is\n\ncorrectly installed and enabled.",
+    "sys-clk is not running.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled.": "sys-clk is not running.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled.",
+    "Could not connect to sys-clk.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled.": "Could not connect to sys-clk.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled."
 }
