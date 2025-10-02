@@ -7,7 +7,7 @@
     "Settings": "Ustawienia",
     "Enable": "Włącz",
     "Uncapped Clocks": "Nieograniczone taktowanie",
-    "Override Boost Mode": "Nadpisz tryb Boost",
+    "Boost GPU Override": "Boost GPU Override",
     "Auto CPU Boost": "Automatyczny Boost CPU",
     "Sync ReverseNX": "Synchronizuj z ReverseNX",
     "Auto GPU Vmin": "Automatyczny GPU Vmin",
