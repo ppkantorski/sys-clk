@@ -7,7 +7,7 @@
     "Settings": "高階設定",
     "Enable": "啟用調頻",
     "Uncapped Clocks": "解鎖頻率",
-    "Override Boost Mode": "升壓模式",
+    "Boost Clock Override": "強制睿頻",
     "Auto CPU Boost": "自動CPU",
     "Sync ReverseNX": "同步ReverseNX",
     "Auto GPU Vmin": "自動GPU Vmin",
