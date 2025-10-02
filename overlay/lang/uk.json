@@ -34,7 +34,7 @@
     "Do not override": "Не змінювати",
     "Profile": "Профіль",
     "Fatal error": "Fatal error",
-    "Could not connect to sys-clk.\n\n\nPlease make sure everything is\n\ncorrectly installed and enabled.": "Could not connect to sys-clk.\n\n\nPlease make sure everything is\n\ncorrectly installed and enabled.",
-    "sys-clk is not running.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled.": "sys-clk is not running.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled.",
-    "Could not connect to sys-clk.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled.": "Could not connect to sys-clk.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled."
+    "Could not connect to sys-clk.\n\n\nPlease make sure everything is\n\ncorrectly installed and enabled.": "Не вдалося підключити sys-clk.\n\n\nПеревірте, чи все\n\nвстановлено й увімкнено.",
+    "sys-clk is not running.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled.": "sys-clk не запущено.\n\n\nПеревірте, чи його\n\nвстановлено й увімкнено.",
+    "Could not connect to sys-clk.\n\n\nPlease make sure everything is\n\ncorrectly installed and enabled.": "Не вдалося підключити sys-clk.\n\n\nПеревірте, чи все\n\nвстановлено й увімкнено."
 }
