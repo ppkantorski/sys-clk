@@ -7,7 +7,7 @@
     "Settings": "Impostazioni",
     "Enable": "Abilita",
     "Uncapped Clocks": "Clock senza limiti",
-    "Boost GPU Override": "Boost GPU Override",
+    "Boost GPU Override": "Boost GPU Sovrascrivere",
     "Auto CPU Boost": "Boost CPU automatico",
     "Sync ReverseNX": "Sincronizza con ReverseNX",
     "Auto GPU Vmin": "Auto GPU Vmin",
@@ -33,8 +33,8 @@
     "Memory": "Memoria",
     "Do not override": "Non sovrascrivere",
     "Profile": "Profilo",
-    "Fatal error": "Fatal error",
-    "Could not connect to sys-clk.\n\n\nPlease make sure everything is\n\ncorrectly installed and enabled.": "Could not connect to sys-clk.\n\n\nPlease make sure everything is\n\ncorrectly installed and enabled.",
-    "sys-clk is not running.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled.": "sys-clk is not running.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled.",
-    "Could not connect to sys-clk.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled.": "Could not connect to sys-clk.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled."
+    "Fatal error": "Errore fatale",
+    "Could not connect to sys-clk.\n\n\nPlease make sure everything is\n\ncorrectly installed and enabled.": "Connessione a sys-clk fallita.\n\n\nVerifica installazione\n\ne attivazione.",
+    "sys-clk is not running.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled.": "sys-clk non attivo.\n\n\nVerifica installazione\n\ne attivazione.",
+    "Could not connect to sys-clk.\n\n\nPlease make sure everything is\n\ncorrectly installed and enabled.": "Connessione a sys-clk fallita.\n\n\nVerifica installazione\n\ne attivazione."
 }
