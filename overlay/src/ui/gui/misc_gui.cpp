@@ -381,7 +381,7 @@ void MiscGui::listUI()
 
     // Add the 4 boolean config toggles using INI keys
     addConfigToggle("uncapped_clocks", "Uncapped Clocks");
-    addConfigToggle("boost_gpu_override", "Boost Clock Override");
+    addConfigToggle("boost_gpu_override", "Boost GPU Override");
     addConfigToggle("auto_cpu_boost", "Auto CPU Boost");
     addConfigToggle("reversenx_sync", "Sync ReverseNX");
     
