@@ -7,7 +7,7 @@
     "Settings": "高级设置",
     "Enable": "启用调频",
     "Uncapped Clocks": "解锁频率",
-    "Boost Clock Override": "强制睿频",
+    "Boost GPU Override": "Boost GPU Override",
     "Auto CPU Boost": "自动CPU",
     "Sync ReverseNX": "同步ReverseNX",
     "Auto GPU Vmin": "自动GPU Vmin",
