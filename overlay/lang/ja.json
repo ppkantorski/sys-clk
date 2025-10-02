@@ -7,7 +7,7 @@
     "Settings": "設定",
     "Enable": "有効化",
     "Uncapped Clocks": "クロック制限解除",
-    "Override Boost Mode": "ブーストモードをオーバーライド",
+    "Boost GPU Override": "Boost GPU Override",
     "Auto CPU Boost": "自動CPUブースト",
     "Sync ReverseNX": "ReverseNXと同期",
     "Auto GPU Vmin": "自動GPU Vmin",
