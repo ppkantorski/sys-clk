@@ -32,5 +32,9 @@
     "USB Charger   Reset": "USB充电器   重置",
     "Memory": "内存",
     "Do not override": "默认",
-    "Profile": "配置"
+    "Profile": "配置",
+    "Fatal error": "Fatal error",
+    "Could not connect to sys-clk.\n\n\nPlease make sure everything is\n\ncorrectly installed and enabled.": "Could not connect to sys-clk.\n\n\nPlease make sure everything is\n\ncorrectly installed and enabled.",
+    "sys-clk is not running.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled.": "sys-clk is not running.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled.",
+    "Could not connect to sys-clk.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled.": "Could not connect to sys-clk.\n\n\nPlease make sure it is correctly\n\ninstalled and enabled."
 }
