@@ -7,7 +7,7 @@
     "Settings": "Настройки",
     "Enable": "sys-clk",
     "Uncapped Clocks": "Не ограничивать MHz",
-    "Override Boost Mode": "Замещать Boost",
+    "Boost GPU Override": "Boost GPU Override",
     "Auto CPU Boost": "Авто Boost CPU",
     "Sync ReverseNX": "Синхр. с ReverseNX",
     "Auto GPU Vmin": "Авто GPU Vmin",
