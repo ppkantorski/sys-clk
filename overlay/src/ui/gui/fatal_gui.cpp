@@ -40,13 +40,13 @@ tsl::elm::Element* FatalGui::baseUI()
         std::uint32_t txtY = 255;
         if(!this->message.empty())
         {
-            txtY += renderer->drawString(this->message.c_str(), false, 40, txtY, 23, TEXT_COLOR).second;
+            txtY += renderer->drawString(this->message, false, 40, txtY, 23, TEXT_COLOR).second;
             txtY += 55;
         }
 
         if(!this->info.empty())
         {
-            renderer->drawString(this->info.c_str(), false, 40, txtY, 18, DESC_COLOR);
+            renderer->drawString(this->info, false, 40, txtY, 18, DESC_COLOR);
         }
     });
 
