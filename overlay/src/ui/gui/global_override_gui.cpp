@@ -51,13 +51,13 @@ void GlobalOverrideGui::addModuleListItem(SysClkModule module)
 {
     tsl::elm::ListItem* listItem = new tsl::elm::ListItem(sysclkFormatModule(module, true));
     listItem->setValue(formatListFreqMHz(0));
-    listItem->setClickListener([this, module](u64 keys) {
+    listItem->setClickListener([this, listItem, module](u64 keys) {
         if((keys & HidNpadButton_A) == HidNpadButton_A)
         {
             this->openFreqChoiceGui(module);
             return true;
         }
-        else if((keys & HidNpadButton_Y) == HidNpadButton_Y)
+        else if((keys & KEY_Y) == KEY_Y)
         {
             // Reset override to "Do not override" (0 Hz)
             Result rc = sysclkIpcSetOverride(module, 0);
@@ -74,6 +74,10 @@ void GlobalOverrideGui::addModuleListItem(SysClkModule module)
             
             // Update display
             this->listItems[module]->setValue(formatListFreqHz(0));
+
+            listItem->triggerClickAnimation();
+            triggerRumbleClick.store(true, std::memory_order_release);
+            triggerSettingsSound.store(true, std::memory_order_release);
             
             return true;
         }

@@ -54,24 +54,33 @@ void AppProfileGui::addModuleListItem(SysClkProfile profile, SysClkModule module
     tsl::elm::ListItem* listItem = new tsl::elm::ListItem(sysclkFormatModule(module, true));
     listItem->setValue(formatListFreqMHz(this->profileList->mhzMap[profile][module]));
     listItem->setClickListener([this, listItem, profile, module](u64 keys) {
-        if((keys & HidNpadButton_A) == HidNpadButton_A)
+        if((keys & KEY_A) == KEY_A)
         {
             this->openFreqChoiceGui(listItem, profile, module);
             return true;
         }
-        else if((keys & HidNpadButton_Y) == HidNpadButton_Y)
+        else if((keys & KEY_Y) == KEY_Y)
         {
             // Reset to "Do not override" (0 MHz)
             this->profileList->mhzMap[profile][module] = 0;
             listItem->setValue(formatListFreqMHz(0));
-            
+
             // Save the updated profile
             Result rc = sysclkIpcSetProfiles(this->applicationId, this->profileList);
             if(R_FAILED(rc))
             {
                 FatalGui::openWithResultCode("sysclkIpcSetProfiles", rc);
+                triggerRumbleClick.store(true, std::memory_order_release);
+                triggerSettingsSound.store(true, std::memory_order_release);
+                
+                listItem->triggerClickAnimation();
                 return false;
             }
+
+            triggerRumbleClick.store(true, std::memory_order_release);
+            triggerSettingsSound.store(true, std::memory_order_release);
+
+            listItem->triggerClickAnimation();
             return true;
         }
         return false;

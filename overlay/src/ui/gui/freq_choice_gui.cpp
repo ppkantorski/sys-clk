@@ -28,7 +28,7 @@ tsl::elm::ListItem* FreqChoiceGui::createFreqListItem(std::uint32_t hz, bool sel
     listItem->setValue(selected ? "\uE14B" : "");
 
     listItem->setClickListener([this, hz](u64 keys) {
-        if((keys & HidNpadButton_A) == HidNpadButton_A && this->listener)
+        if((keys & KEY_A) == KEY_A && this->listener)
         {
             if(this->listener(hz))
             {
