@@ -30,6 +30,7 @@ void MainGui::listUI()
 
             this->lastContextUpdate = armGetSystemTick();
             this->context->enabled = state;
+            enabledToggle->triggerClickAnimation();
         });
         this->listElement->addItem(this->enabledToggle);
     }
