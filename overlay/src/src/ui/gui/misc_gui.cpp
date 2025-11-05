@@ -10,7 +10,7 @@ MiscGui::MiscGui()
     
     // Load current config values
     configValues["uncapped_clocks"] = getConfigValue("uncapped_clocks");
-    configValues["boost_mode_gpu_override"] = getConfigValue("boost_mode_gpu_override");
+    configValues["boost_gpu_override"] = getConfigValue("boost_gpu_override");
     configValues["auto_cpu_boost"] = getConfigValue("auto_cpu_boost");
     configValues["sync_reversenx"] = getConfigValue("sync_reversenx");
     // gpu_dvfs is handled separately as it's now a trackbar with integer values
@@ -342,10 +342,11 @@ void MiscGui::setConfigIntValue(const std::string& iniKey, int value)
 
 void MiscGui::addConfigToggle(const std::string& iniKey, const char* displayName) {
     tsl::elm::ToggleListItem* toggle = new tsl::elm::ToggleListItem(displayName, configValues[iniKey]);
-    toggle->setStateChangedListener([this, iniKey](bool state) {
+    toggle->setStateChangedListener([this, toggle, iniKey](bool state) {
         configValues[iniKey] = state;
         setConfigValue(iniKey, state);
         this->lastContextUpdate = armGetSystemTick();
+        toggle->triggerClickAnimation();
     });
     this->listElement->addItem(toggle);
     this->configToggles[iniKey] = toggle;
@@ -376,20 +377,21 @@ void MiscGui::listUI()
 
         this->lastContextUpdate = armGetSystemTick();
         this->context->enabled = state;
+        enabledToggle->triggerClickAnimation();
     });
     this->listElement->addItem(this->enabledToggle);
 
     // Add the 4 boolean config toggles using INI keys
     addConfigToggle("uncapped_clocks", "Uncapped Clocks");
-    addConfigToggle("boost_mode_gpu_override", "Boost Clock Override");
+    addConfigToggle("boost_gpu_override", "Boost GPU Override");
     addConfigToggle("auto_cpu_boost", "Auto CPU Boost");
     addConfigToggle("reversenx_sync", "Sync ReverseNX");
     
     // Add GPU DVFS as a NamedStepTrackBar with V2 style
     this->autoGPUVminTrackbar = new tsl::elm::NamedStepTrackBar("", {
         "Off",
-        "Official Service Method", 
-        "Hijack Method"
+        "Official Service", 
+        "Hijack"
     }, true, "Auto GPU Vmin");
     
     // Set initial value (default is 0 if not set)
