@@ -47,7 +47,7 @@ DEFINES	:=	-DDISABLE_IPC -DTARGET="\"$(TARGET)\"" -DTARGET_VERSION="\"$(TARGET_V
 
 ARCH	:=	-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
 
-CFLAGS	:=	-Os -Wall -flto -fdata-sections -ffunction-sections -fno-rtti -fno-common \
+CFLAGS	:=	-O3 -Wall -flto -fdata-sections -ffunction-sections -fno-rtti -fno-common \
             -fuse-linker-plugin -fomit-frame-pointer -finline-small-functions \
             -fno-strict-aliasing -frename-registers -falign-functions=16 \
 			$(ARCH) $(DEFINES)
