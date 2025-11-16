@@ -37,7 +37,7 @@ include ${TOPDIR}/lib/libultrahand/ultrahand.mk
 # version control constants
 #---------------------------------------------------------------------------------
 #TARGET_VERSION	:= $(shell git describe --dirty --always --tags)
-APP_VERSION		:= 2.0.1+r16
+APP_VERSION		:= 2.0.1+r17
 TARGET_VERSION := $(APP_VERSION)
 
 #---------------------------------------------------------------------------------
@@ -48,6 +48,8 @@ DEFINES	:=	-DDISABLE_IPC -DTARGET="\"$(TARGET)\"" -DTARGET_VERSION="\"$(TARGET_V
 ARCH	:=	-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
 
 CFLAGS	:=	-Os -Wall -flto -fdata-sections -ffunction-sections -fno-rtti -fno-common \
+            -fuse-linker-plugin -fomit-frame-pointer -finline-small-functions \
+            -fno-strict-aliasing -frename-registers -falign-functions=16 \
 			$(ARCH) $(DEFINES)
 
 CFLAGS	+=	$(INCLUDE) -D__SWITCH__
