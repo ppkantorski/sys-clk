@@ -93,9 +93,9 @@ void MainGui::listUI()
 
 void MainGui::refresh()
 {
+    static bool isUsingEOS = usingEOS();
     BaseMenuGui::refresh();
-    //if(this->context)
-    //{
-    //    this->enabledToggle->setState(this->context->enabled);
-    //}
+    if(!isUsingEOS && this->context) {
+        this->enabledToggle->setState(this->context->enabled);
+    }
 }

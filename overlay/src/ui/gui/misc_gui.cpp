@@ -379,6 +379,13 @@ void MiscGui::listUI()
     });
     this->listElement->addItem(this->enabledToggle);
 
+    // add gap
+    this->listElement->addItem(new tsl::elm::CustomDrawer(
+        [](tsl::gfx::Renderer* renderer, s32 x, s32 y, s32 w, s32 h) {
+            // Empty drawer - just creates space
+        }
+    ), 12);
+
     // Add the 4 boolean config toggles using INI keys
     addConfigToggle("uncapped_clocks", "Uncapped Clocks");
     addConfigToggle("boost_gpu_override", "Boost GPU Override");
