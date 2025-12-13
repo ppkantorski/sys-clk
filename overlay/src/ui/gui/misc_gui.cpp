@@ -361,6 +361,8 @@ void MiscGui::updateConfigToggles() {
     }
 }
 
+static constexpr int numEntries = 25;
+
 void MiscGui::listUI()
 {
 
@@ -440,15 +442,20 @@ void MiscGui::listUI()
             "-15 mV",
             "-10 mV",
             "-5 mV",
-            "0 mV"
+            "0 mV",
+            "+5 mV",
+            "+10 mV",
+            "+15 mV",
+            "+20 mV"
         },
         true,
         "GPU Vmin Offset"
     );
+
         
     // Set initial value - convert stored value to trackbar index
     const int storedGPUVminOffsetValue = getConfigIntValue("gpu_vmin_offset", 0);
-    const int trackbarIndex = std::max(0, std::min(20, (100 - storedGPUVminOffsetValue) / 5));
+    const int trackbarIndex = std::max(0, std::min(numEntries-1, (100 - storedGPUVminOffsetValue) / 5));
     this->gpuVminOffsetTrackbar->setProgress(static_cast<u8>(trackbarIndex));
     
     // Set up the value change listener to update the INI file
@@ -488,7 +495,7 @@ void MiscGui::refresh() {
         // Update GPU DVFS trackbar
         if (this->gpuVminOffsetTrackbar != nullptr) {
             const int storedGPUVminOffsetValue = getConfigIntValue("gpu_vmin_offset", 0);
-            const int trackbarIndex = std::max(0, std::min(20, (100 - storedGPUVminOffsetValue) / 5));
+            const int trackbarIndex = std::max(0, std::min(numEntries-1, (100 - storedGPUVminOffsetValue) / 5));
             this->gpuVminOffsetTrackbar->setProgress(static_cast<u8>(trackbarIndex));
         }
     }
