@@ -54,6 +54,7 @@ void GlobalOverrideGui::addModuleListItem(SysClkModule module)
     listItem->setClickListener([this, listItem, module](u64 keys) {
         if((keys & HidNpadButton_A) == HidNpadButton_A)
         {
+            tsl::shiftItemFocus(listItem);
             this->openFreqChoiceGui(module);
             return true;
         }

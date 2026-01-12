@@ -35,9 +35,10 @@ void MainGui::listUI()
     }
 
     tsl::elm::ListItem* appProfileItem = new tsl::elm::ListItem("Edit App Profile");
-    appProfileItem->setClickListener([this](u64 keys) {
+    appProfileItem->setClickListener([this, appProfileItem](u64 keys) {
         if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
         {
+            tsl::shiftItemFocus(appProfileItem);
             AppProfileGui::changeTo(this->context->applicationId);
             return true;
         }
@@ -50,9 +51,10 @@ void MainGui::listUI()
 
     if (isUsingEOS) {
         tsl::elm::ListItem* globalProfileItem = new tsl::elm::ListItem("Edit Global Profile");
-        globalProfileItem->setClickListener([this](u64 keys) {
+        globalProfileItem->setClickListener([this, globalProfileItem](u64 keys) {
             if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
             {
+                tsl::shiftItemFocus(globalProfileItem);
                 AppProfileGui::changeTo(SYSCLK_GLOBAL_PROFILE_TID);
                 return true;
             }
@@ -63,9 +65,10 @@ void MainGui::listUI()
     }
 
     tsl::elm::ListItem* globalOverrideItem = new tsl::elm::ListItem("Temporary Overrides");
-    globalOverrideItem->setClickListener([this](u64 keys) {
+    globalOverrideItem->setClickListener([this, globalOverrideItem](u64 keys) {
         if((keys & HidNpadButton_A) == HidNpadButton_A)
         {
+            tsl::shiftItemFocus(globalOverrideItem);
             tsl::changeTo<GlobalOverrideGui>();
             return true;
         }
@@ -78,9 +81,10 @@ void MainGui::listUI()
 
     if (isUsingEOS) {
         tsl::elm::ListItem* miscItem = new tsl::elm::ListItem("Settings");
-        miscItem->setClickListener([this](u64 keys) {
+        miscItem->setClickListener([this, miscItem](u64 keys) {
             if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
             {
+                tsl::shiftItemFocus(miscItem);
                 tsl::changeTo<MiscGui>();
                 return true;
             }

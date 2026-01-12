@@ -34,7 +34,7 @@ void AppProfileGui::openFreqChoiceGui(tsl::elm::ListItem* listItem, SysClkProfil
         FatalGui::openWithResultCode("sysclkIpcGetFreqList", rc);
         return;
     }
-
+    tsl::shiftItemFocus(listItem);
     tsl::changeTo<FreqChoiceGui>(this->profileList->mhzMap[profile][module] * 1000000, hzList, hzCount, module, [this, listItem, profile, module](std::uint32_t hz) {
         this->profileList->mhzMap[profile][module] = hz / 1000000;
         listItem->setValue(formatListFreqMHz(this->profileList->mhzMap[profile][module]));
