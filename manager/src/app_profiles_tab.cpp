@@ -31,6 +31,62 @@
 
 #define PROFILE_BADGE "\uE3E0"
 
+#ifdef __SWITCH__
+#include <zlib.h>
+
+typedef struct {
+    u16 size;
+    u8 data[0x2FFE];
+    u8 _unusedA[0x215];
+    u8 titlesDataFormat;
+    u8 _unusedB[0xDEA];
+} NacpExCompressed;
+
+static_assert(sizeof(NacpStruct) == sizeof(NacpExCompressed), "size mismatch");
+
+static bool _nacpConvertTitleData(NacpStruct* nacp) {
+    NacpExCompressed* compressed = (NacpExCompressed*)(nacp);
+    if(compressed->titlesDataFormat == 0) {
+        return true;
+    }
+
+    if(compressed->titlesDataFormat != 1) {
+        brls::Logger::error("unexpected title data format: %d", compressed->titlesDataFormat);
+        return false;
+    }
+
+    NacpLanguageEntry tmp[32];
+    z_stream stream = {};
+    stream.avail_out = sizeof(tmp);
+    stream.next_out = (Bytef*)tmp;
+    stream.avail_in = compressed->size;
+    stream.next_in = compressed->data;
+
+    int ret = inflateInit2(&stream, -15);
+    if(ret != Z_OK) {
+        brls::Logger::error("inflateInit2: [%d] %s", ret, stream.msg);
+        return false;
+    }
+
+    ret = inflate(&stream, Z_FINISH);
+    inflateEnd(&stream);
+
+    if(ret != Z_STREAM_END) {
+        brls::Logger::error("inflate: [%d] %s", ret, stream.msg);
+        return false;
+    }
+
+    compressed->titlesDataFormat = 0;
+    memcpy(nacp->lang, tmp, sizeof(nacp->lang));
+    return true;
+}
+#else
+static bool _nacpConvertTitleData(NacpStruct* nacp) {
+    return true;
+}
+#endif
+
+
 AppProfilesTab::AppProfilesTab()
 {
     // Filter toggle
@@ -78,6 +134,11 @@ AppProfilesTab::AppProfilesTab()
             break;
         }
 
+        // Decompress lang entries if required (fixes garbled text for updated titles like BOTW on 21.0.0+)
+        if(!_nacpConvertTitleData(&controlData.nacp)) {
+            break;
+        }
+
         // Language entry
         rc = nacpGetLanguageEntry(&controlData.nacp, &langEntry);
         if (R_FAILED(rc))
@@ -87,7 +148,7 @@ AppProfilesTab::AppProfilesTab()
         }
 
         // Name
-        if (!langEntry->name)
+        if (!langEntry->name[0])
         {
             i++;
             continue;
