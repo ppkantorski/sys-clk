@@ -34,24 +34,13 @@
 #ifdef __SWITCH__
 #include <zlib.h>
 
-typedef struct {
-    u16 size;
-    u8 data[0x2FFE];
-    u8 _unusedA[0x215];
-    u8 titlesDataFormat;
-    u8 _unusedB[0xDEA];
-} NacpExCompressed;
-
-static_assert(sizeof(NacpStruct) == sizeof(NacpExCompressed), "size mismatch");
-
 static bool _nacpConvertTitleData(NacpStruct* nacp) {
-    NacpExCompressed* compressed = (NacpExCompressed*)(nacp);
-    if(compressed->titlesDataFormat == 0) {
+    if(nacp->titles_data_format == 0) {
         return true;
     }
 
-    if(compressed->titlesDataFormat != 1) {
-        brls::Logger::error("unexpected title data format: %d", compressed->titlesDataFormat);
+    if(nacp->titles_data_format != 1) {
+        brls::Logger::error("unexpected title data format: %u", nacp->titles_data_format);
         return false;
     }
 
@@ -59,8 +48,8 @@ static bool _nacpConvertTitleData(NacpStruct* nacp) {
     z_stream stream = {};
     stream.avail_out = sizeof(tmp);
     stream.next_out = (Bytef*)tmp;
-    stream.avail_in = compressed->size;
-    stream.next_in = compressed->data;
+    stream.avail_in = nacp->lang_data.compressed_data.buffer_size;
+    stream.next_in = nacp->lang_data.compressed_data.buffer;
 
     int ret = inflateInit2(&stream, -15);
     if(ret != Z_OK) {
@@ -76,8 +65,8 @@ static bool _nacpConvertTitleData(NacpStruct* nacp) {
         return false;
     }
 
-    compressed->titlesDataFormat = 0;
-    memcpy(nacp->lang, tmp, sizeof(nacp->lang));
+    nacp->titles_data_format = 0;
+    memcpy(nacp->lang_data.lang, tmp, sizeof(nacp->lang_data.lang));
     return true;
 }
 #else
