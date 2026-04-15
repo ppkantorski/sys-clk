@@ -35,7 +35,7 @@ static inline bool IsErista() {
 BaseMenuGui::BaseMenuGui() : tempColors{tsl::Color(0), tsl::Color(0), tsl::Color(0)}
 {
     isUsingEOS = usingEOS();
-    tsl::initializeThemeVars();
+    //tsl::initializeThemeVars();
     this->context = nullptr;
     this->lastContextUpdate = 0;
     this->listElement = nullptr;

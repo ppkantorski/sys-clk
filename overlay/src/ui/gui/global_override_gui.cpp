@@ -77,8 +77,7 @@ void GlobalOverrideGui::addModuleListItem(SysClkModule module)
             this->listItems[module]->setValue(formatListFreqHz(0));
 
             listItem->triggerClickAnimation();
-            triggerRumbleClick.store(true, std::memory_order_release);
-            triggerSettingsSound.store(true, std::memory_order_release);
+            triggerSettingsFeedback();
             
             return true;
         }

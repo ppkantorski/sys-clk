@@ -70,15 +70,13 @@ void AppProfileGui::addModuleListItem(SysClkProfile profile, SysClkModule module
             if(R_FAILED(rc))
             {
                 FatalGui::openWithResultCode("sysclkIpcSetProfiles", rc);
-                triggerRumbleClick.store(true, std::memory_order_release);
-                triggerSettingsSound.store(true, std::memory_order_release);
+                triggerSettingsFeedback();
                 
                 listItem->triggerClickAnimation();
                 return false;
             }
 
-            triggerRumbleClick.store(true, std::memory_order_release);
-            triggerSettingsSound.store(true, std::memory_order_release);
+            triggerSettingsFeedback();
 
             listItem->triggerClickAnimation();
             return true;
