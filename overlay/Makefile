@@ -37,7 +37,7 @@ include ${TOPDIR}/lib/libultrahand/ultrahand.mk
 # version control constants
 #---------------------------------------------------------------------------------
 #TARGET_VERSION	:= $(shell git describe --dirty --always --tags)
-APP_VERSION		:= 2.0.1+r22
+APP_VERSION		:= 2.0.1+r23
 TARGET_VERSION := $(APP_VERSION)
 
 #---------------------------------------------------------------------------------
@@ -58,15 +58,19 @@ CFLAGS	+=	$(INCLUDE) -D__SWITCH__
 UI_OVERRIDE_PATH := /config/sys-clk/
 CFLAGS += -DUI_OVERRIDE_PATH="\"$(UI_OVERRIDE_PATH)\""
 
-# Disable fstream
-#NO_FSTREAM_DIRECTIVE := 1
-#CFLAGS += -DNO_FSTREAM_DIRECTIVE=$(NO_FSTREAM_DIRECTIVE)
+# Exception wrap utilization (for smaller compilation size)
+CFLAGS += -DUSE_EXCEPTION_WRAP=1
+
+# Requires USE_EXCEPTION_WRAP and inclusion of exception_wrap.hpp in main
+LDFLAGS += -Wl,-wrap,__cxa_throw \
+           -Wl,-wrap,_Unwind_Resume \
+           -Wl,-wrap,__gxx_personality_v0
 
 
 CXXFLAGS	:= $(CFLAGS) -fno-exceptions -std=c++26 -Wno-dangling-else -ffast-math
 
 ASFLAGS	:=	-g $(ARCH)
-LDFLAGS	=	-specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
+LDFLAGS	+=	-specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
 LIBS := -lcurl -lz -lzzip -lmbedtls -lmbedx509 -lmbedcrypto -lnx
 
