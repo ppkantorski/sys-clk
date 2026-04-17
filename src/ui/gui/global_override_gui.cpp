@@ -54,6 +54,7 @@ void GlobalOverrideGui::addModuleListItem(SysClkModule module)
     listItem->setClickListener([this, listItem, module](u64 keys) {
         if((keys & HidNpadButton_A) == HidNpadButton_A)
         {
+            tsl::shiftItemFocus(listItem);
             this->openFreqChoiceGui(module);
             return true;
         }
@@ -76,8 +77,7 @@ void GlobalOverrideGui::addModuleListItem(SysClkModule module)
             this->listItems[module]->setValue(formatListFreqHz(0));
 
             listItem->triggerClickAnimation();
-            triggerRumbleClick.store(true, std::memory_order_release);
-            triggerSettingsSound.store(true, std::memory_order_release);
+            triggerSettingsFeedback();
             
             return true;
         }

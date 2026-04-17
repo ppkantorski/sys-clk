@@ -35,7 +35,7 @@ static inline bool IsErista() {
 BaseMenuGui::BaseMenuGui() : tempColors{tsl::Color(0), tsl::Color(0), tsl::Color(0)}
 {
     isUsingEOS = usingEOS();
-    tsl::initializeThemeVars();
+    //tsl::initializeThemeVars();
     this->context = nullptr;
     this->lastContextUpdate = 0;
     this->listElement = nullptr;
@@ -82,7 +82,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer) {
     u32 y = 91;
     
     // === TOP SECTION ===
-    renderer->drawRoundedRect(14, 70-1, 420, 30+2, 10.0f, renderer->aWithOpacity(tsl::tableBGColor));
+    renderer->drawRoundedRect(14, 70-1, 420, 30+2, 12.0f, renderer->aWithOpacity(tsl::tableBGColor));
     
     // App ID - use pre-formatted string
     renderer->drawString(labels[0], false, positions[0], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
@@ -95,7 +95,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer) {
     y = 129; // Direct assignment instead of += 38
     
     // === MAIN DATA SECTION ===
-    renderer->drawRoundedRect(14, 106, 420, 116, 10.0f, renderer->aWithOpacity(tsl::tableBGColor));
+    renderer->drawRoundedRect(14, 106, 420, 116, 12.0f, renderer->aWithOpacity(tsl::tableBGColor));
     
     // === FREQUENCY SECTION ===
     // Labels first (better cache locality)
