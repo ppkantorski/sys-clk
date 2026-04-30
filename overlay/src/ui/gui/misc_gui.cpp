@@ -13,7 +13,7 @@ MiscGui::MiscGui()
     configValues["ow_boost"]        = getConfigValue("ow_boost");           // HOC: ow_boost (was boost_gpu_override)
     configValues["auto_cpu_boost"]  = getConfigValue("auto_cpu_boost");
     configValues["reversenx_sync"]  = getConfigValue("reversenx_sync");     // consistent key name
-    configValues["dvfs_mode"]       = getConfigValue("dvfs_mode"); 
+    configValues["dvfs_mode"]       = getConfigValue("dvfs_mode", true);  // sysmodule default is ON
     // dvfs_offset handled separately as trackbars
 }
 
@@ -22,12 +22,11 @@ MiscGui::~MiscGui()
     this->configToggles.clear();
 }
 
-bool MiscGui::getConfigValue(const std::string& iniKey)
+bool MiscGui::getConfigValue(const std::string& iniKey, bool defaultValue)
 {
     FILE* file = fopen("/config/sys-clk/config.ini", "r");
     if (!file) {
-        // Return default values if file doesn't exist
-        return false; // all toggles default to false
+        return defaultValue;
     }
     
     char line[512];
@@ -96,8 +95,8 @@ bool MiscGui::getConfigValue(const std::string& iniKey)
     
     fclose(file);
     
-    // Return default false if key not found
-    return false;
+    // Key not found — return caller-supplied default.
+    return defaultValue;
 }
 
 int MiscGui::getConfigIntValue(const std::string& iniKey, int defaultValue)

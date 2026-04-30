@@ -18,7 +18,7 @@ class MiscGui : public BaseMenuGui
         
         void addConfigToggle(const std::string& iniKey, const char* displayName);
         void updateConfigToggles();
-        bool getConfigValue(const std::string& iniKey);
+        bool getConfigValue(const std::string& iniKey, bool defaultValue = false);
         void setConfigValue(const std::string& iniKey, bool value);
         int getConfigIntValue(const std::string& iniKey, int defaultValue);
         void setConfigIntValue(const std::string& iniKey, int value);
