@@ -37,9 +37,18 @@ std::string getVersionString() {
 }
 
 
+bool usingHOC() {
+    const std::string versionString = getVersionString();
+
+    // Detect HOC sysmodule (version string ends with "-hoc") or legacy HOC builds
+    return versionString.find("hoc") != std::string::npos ||
+           versionString.find("eos") != std::string::npos;
+}
+
 bool usingEOS() {
     const std::string versionString = getVersionString();
 
+    // Detect EOS sysmodule (version string ends with "-eos") or legacy HOC builds
     return versionString.find("eos") != std::string::npos;
 }
 
@@ -53,13 +62,17 @@ void BaseGui::preDraw(tsl::gfx::Renderer* renderer)
     renderer->drawBitmap(LOGO_X, LOGO_Y, LOGO_WIDTH, LOGO_HEIGHT, logo_rgba_bin);
     renderer->drawString("overlay", false, LOGO_LABEL_X, LOGO_LABEL_Y, LOGO_LABEL_FONT_SIZE, TEXT_COLOR);
     renderer->drawString(TARGET_VERSION, false, VERSION_X, VERSION_Y, VERSION_FONT_SIZE, tsl::bannerVersionTextColor);
-    if (isUsingEOS) {
+    if (isUsingHOC) {
+        renderer->drawString("HOC mode", false, VERSION_X+86, VERSION_Y, VERSION_FONT_SIZE, tsl::warningTextColor);
+    }
+    else if (isUsingEOS) {
         renderer->drawString("EOS mode", false, VERSION_X+86, VERSION_Y, VERSION_FONT_SIZE, tsl::warningTextColor);
     }
 }
 
 tsl::elm::Element* BaseGui::createUI()
 {
+    isUsingHOC = usingHOC();
     isUsingEOS = usingEOS();
     BaseFrame* rootFrame = new BaseFrame(this);
     rootFrame->setContent(this->baseUI());

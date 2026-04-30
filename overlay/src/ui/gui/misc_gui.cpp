@@ -8,12 +8,13 @@
 MiscGui::MiscGui()
 {
     
-    // Load current config values
+    // Load current config values — keys must match HOC sysmodule's INI key names
     configValues["uncapped_clocks"] = getConfigValue("uncapped_clocks");
-    configValues["boost_gpu_override"] = getConfigValue("boost_gpu_override");
-    configValues["auto_cpu_boost"] = getConfigValue("auto_cpu_boost");
-    configValues["sync_reversenx"] = getConfigValue("sync_reversenx");
-    // gpu_dvfs is handled separately as it's now a trackbar with integer values
+    configValues["ow_boost"]        = getConfigValue("ow_boost");           // HOC: ow_boost (was boost_gpu_override)
+    configValues["auto_cpu_boost"]  = getConfigValue("auto_cpu_boost");
+    configValues["reversenx_sync"]  = getConfigValue("reversenx_sync");     // consistent key name
+    configValues["dvfs_mode"]       = getConfigValue("dvfs_mode"); 
+    // dvfs_offset handled separately as trackbars
 }
 
 MiscGui::~MiscGui()
@@ -26,7 +27,7 @@ bool MiscGui::getConfigValue(const std::string& iniKey)
     FILE* file = fopen("/config/sys-clk/config.ini", "r");
     if (!file) {
         // Return default values if file doesn't exist
-        return (iniKey == "auto_gpu_vmin"); // gpu_dvfs defaults to true, others default to false
+        return false; // all toggles default to false
     }
     
     char line[512];
@@ -95,8 +96,8 @@ bool MiscGui::getConfigValue(const std::string& iniKey)
     
     fclose(file);
     
-    // Return default values if key not found
-    return (iniKey == "auto_gpu_vmin"); // auto_gpu_vmin defaults to true, others default to false
+    // Return default false if key not found
+    return false;
 }
 
 int MiscGui::getConfigIntValue(const std::string& iniKey, int defaultValue)
@@ -390,35 +391,36 @@ void MiscGui::listUI()
 
     // Add the 4 boolean config toggles using INI keys
     addConfigToggle("uncapped_clocks", "Uncapped Clocks");
-    addConfigToggle("boost_gpu_override", "Boost GPU Override");
-    addConfigToggle("auto_cpu_boost", "Auto CPU Boost");
-    addConfigToggle("reversenx_sync", "Sync ReverseNX");
+    addConfigToggle("ow_boost",        "Boost GPU Override");  // HOC key: ow_boost
+    addConfigToggle("auto_cpu_boost",  "Auto CPU Boost");
+    addConfigToggle("reversenx_sync",  "Sync ReverseNX");
     
-    // Add GPU DVFS as a NamedStepTrackBar with V2 style
-    this->autoGPUVminTrackbar = new tsl::elm::NamedStepTrackBar("", {
-        "Off",
-        "Official Service", 
-        "Hijack"
-    }, true, "Auto GPU Vmin");
-    
-    // Set initial value (default is 0 if not set)
-    //int currentAutoGPUVminValue = getConfigIntValue("auto_gpu_vmin", 1);
-    // Ensure the value is within valid range (0-2)
-    const int currentAutoGPUVminValue = std::max(0, std::min(2, getConfigIntValue("auto_gpu_vmin", 1)));
-    this->autoGPUVminTrackbar->setProgress(static_cast<u8>(currentAutoGPUVminValue));
-    
-    // Set up the value change listener to update the INI file
-    this->autoGPUVminTrackbar->setValueChangedListener([this](u8 value) {
-        // Ensure value is within expected range
-        const int intValue = static_cast<int>(std::min(static_cast<u8>(2), value));
-        setConfigIntValue("auto_gpu_vmin", intValue);
-        this->lastContextUpdate = armGetSystemTick();
-    });
-    
-    this->listElement->addItem(this->autoGPUVminTrackbar);
+    // Add GPU DVFS mode as a 2-step trackbar: HOC only has Disabled(0) and Hijack(1)
+    //this->autoGPUVminTrackbar = new tsl::elm::NamedStepTrackBar("", {
+    //    "Off",
+    //    "Hijack"
+    //}, true, "Auto GPU Vmin");
+    //
+    //// Ensure the value is within valid range (0-1)
+    //const int currentAutoGPUVminValue = std::max(0, std::min(1, getConfigIntValue("dvfs_mode", 1)));
+    //this->autoGPUVminTrackbar->setProgress(static_cast<u8>(currentAutoGPUVminValue));
+    //
+    //// Set up the value change listener to update the INI file (HOC key: dvfs_mode)
+    //this->autoGPUVminTrackbar->setValueChangedListener([this](u8 value) {
+    //    const int intValue = static_cast<int>(std::min(static_cast<u8>(1), value));
+    //    setConfigIntValue("dvfs_mode", intValue);
+    //    this->lastContextUpdate = armGetSystemTick();
+    //});
+    //
+    //this->listElement->addItem(this->autoGPUVminTrackbar);
 
 
-    // Add GPU DVFS as a NamedStepTrackBar with V2 style
+    addConfigToggle("dvfs_mode",  "GPU DVFS");
+
+
+    // GPU Vmin Offset: -100 mV to +20 mV in 5 mV steps (25 entries)
+    // Stored in config as actual signed mV value: -100, -95, ..., 0, +5, ..., +20
+    // HOC clock_manager reads dvfs_offset and adds it directly to vmin (in mV)
     this->gpuVminOffsetTrackbar = new tsl::elm::NamedStepTrackBar(
         "", 
         {
@@ -453,16 +455,17 @@ void MiscGui::listUI()
     );
 
         
-    // Set initial value - convert stored value to trackbar index
-    const int storedGPUVminOffsetValue = getConfigIntValue("gpu_vmin_offset", 0);
-    const int trackbarIndex = std::max(0, std::min(numEntries-1, (100 - storedGPUVminOffsetValue) / 5));
+    // Read stored mV value and convert to trackbar index.
+    // stored=-100 → index=0, stored=0 → index=20, stored=+20 → index=24
+    const int storedGPUVminOffsetValue = getConfigIntValue("dvfs_offset", 0);
+    const int trackbarIndex = std::max(0, std::min(numEntries-1, (storedGPUVminOffsetValue + 100) / 5));
     this->gpuVminOffsetTrackbar->setProgress(static_cast<u8>(trackbarIndex));
     
-    // Set up the value change listener to update the INI file
+    // Write back actual signed mV value so HOC sysmodule applies it correctly.
+    // index=0 → -100, index=20 → 0, index=24 → +20
     this->gpuVminOffsetTrackbar->setValueChangedListener([this](u8 value) {
-        // Convert trackbar index to stored value: index 0 = 100, index 20 = 0
-        const int storedValue = 100 - (value * 5);
-        setConfigIntValue("gpu_vmin_offset", storedValue);
+        const int storedValue = (static_cast<int>(value) * 5) - 100;
+        setConfigIntValue("dvfs_offset", storedValue);
         this->lastContextUpdate = armGetSystemTick();
     });
     
@@ -484,18 +487,16 @@ void MiscGui::refresh() {
         frameCounter = 0;
         updateConfigToggles();
         
-        // Update GPU DVFS trackbar
-        if (this->autoGPUVminTrackbar != nullptr) {
-            //int currentDvfsValue = getConfigIntValue("auto_gpu_vmin", 1);
-            // Ensure the value is within valid range (0-2)
-            const int currentAutoGPUVminValue = std::max(0, std::min(2, getConfigIntValue("auto_gpu_vmin", 1)));
-            this->autoGPUVminTrackbar->setProgress(static_cast<u8>(currentAutoGPUVminValue));
-        }
+        // Update Auto GPU Vmin trackbar (HOC key: dvfs_mode, range 0-1)
+        //if (this->autoGPUVminTrackbar != nullptr) {
+        //    const int currentAutoGPUVminValue = std::max(0, std::min(1, getConfigIntValue("dvfs_mode", 1)));
+        //    this->autoGPUVminTrackbar->setProgress(static_cast<u8>(currentAutoGPUVminValue));
+        //}
 
-        // Update GPU DVFS trackbar
+        // Update GPU Vmin Offset trackbar (HOC key: dvfs_offset, stored as signed mV)
         if (this->gpuVminOffsetTrackbar != nullptr) {
-            const int storedGPUVminOffsetValue = getConfigIntValue("gpu_vmin_offset", 0);
-            const int trackbarIndex = std::max(0, std::min(numEntries-1, (100 - storedGPUVminOffsetValue) / 5));
+            const int storedGPUVminOffsetValue = getConfigIntValue("dvfs_offset", 0);
+            const int trackbarIndex = std::max(0, std::min(numEntries-1, (storedGPUVminOffsetValue + 100) / 5));
             this->gpuVminOffsetTrackbar->setProgress(static_cast<u8>(trackbarIndex));
         }
     }

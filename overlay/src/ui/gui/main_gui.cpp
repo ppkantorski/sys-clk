@@ -17,9 +17,9 @@
 
 void MainGui::listUI()
 {
-    bool isUsingEOS = usingEOS();
+    bool isUsingHOC = usingHOC();
 
-    if (!isUsingEOS) {
+    if (!isUsingHOC) {
         this->enabledToggle = new tsl::elm::ToggleListItem("Enable", false);
         enabledToggle->setStateChangedListener([this](bool state) {
             Result rc = sysclkIpcSetEnabled(state);
@@ -49,7 +49,7 @@ void MainGui::listUI()
 
     this->listElement->addItem(new tsl::elm::CategoryHeader("Advanced"));
 
-    if (isUsingEOS) {
+    if (isUsingHOC) {
         tsl::elm::ListItem* globalProfileItem = new tsl::elm::ListItem("Edit Global Profile");
         globalProfileItem->setClickListener([this, globalProfileItem](u64 keys) {
             if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
@@ -79,7 +79,7 @@ void MainGui::listUI()
 
     //this->listElement->addItem(new tsl::elm::CategoryHeader("Misc"));
 
-    if (isUsingEOS) {
+    if (isUsingHOC) {
         tsl::elm::ListItem* miscItem = new tsl::elm::ListItem("Settings");
         miscItem->setClickListener([this, miscItem](u64 keys) {
             if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
@@ -97,9 +97,9 @@ void MainGui::listUI()
 
 void MainGui::refresh()
 {
-    static bool isUsingEOS = usingEOS();
+    static bool isUsingHOC = usingHOC();
     BaseMenuGui::refresh();
-    if(!isUsingEOS && this->context) {
+    if(!isUsingHOC && this->context) {
         this->enabledToggle->setState(this->context->enabled);
     }
 }

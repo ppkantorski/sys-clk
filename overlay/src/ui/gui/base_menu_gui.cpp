@@ -34,7 +34,7 @@ static inline bool IsErista() {
 
 BaseMenuGui::BaseMenuGui() : tempColors{tsl::Color(0), tsl::Color(0), tsl::Color(0)}
 {
-    isUsingEOS = usingEOS();
+    isUsingHOC = usingHOC();
     //tsl::initializeThemeVars();
     this->context = nullptr;
     this->lastContextUpdate = 0;
@@ -181,7 +181,7 @@ void BaseMenuGui::refresh()
     //if (R_SUCCEEDED(sysclkCheck)) {
     //    SysClkContext sysclkCTX;
     if (R_SUCCEEDED(sysclkIpcGetCurrentContext(this->context))) {
-        if (isUsingEOS) {
+        if (isUsingHOC) {
             cpuVoltageUv = this->context->realVolts[0]; 
             gpuVoltageUv = this->context->realVolts[1]; 
             socVoltageUv = this->context->realVolts[3];
@@ -197,15 +197,15 @@ void BaseMenuGui::refresh()
     }
     //}
 
-    if (!isUsingEOS) {
+    if (!isUsingHOC) {
         // === ULTRA-FAST VOLTAGE READING ===
         // Pre-computed domain configuration based on hardware
         static constexpr PowerDomainId domains[] = {
             PcvPowerDomainId_Max77621_Cpu,    // [0] CPU
             PcvPowerDomainId_Max77621_Gpu,    // [1] GPU  
             PcvPowerDomainId_Max77812_Dram,   // [2] EMC/DRAM - Mariko only
-            PcvPowerDomainId_Max77620_Sd0,    // [3] SOC - EOS only
-            PcvPowerDomainId_Max77620_Sd1     // [4] VDD2 - EOS only
+            PcvPowerDomainId_Max77620_Sd0,    // [3] SOC - HOC only
+            PcvPowerDomainId_Max77620_Sd1     // [4] VDD2 - HOC only
         };
         
         // Voltage array for direct indexing
