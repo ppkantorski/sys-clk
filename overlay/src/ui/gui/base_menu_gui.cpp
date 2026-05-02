@@ -32,6 +32,94 @@ static inline bool IsErista() {
     return !IsMariko();
 }
 
+// ── Config-INI helpers (overlay-only key) ──────────────────────────────────
+// Stored in the [overlay] section of /config/sys-clk/config.ini.
+// File-scope statics so they don't pollute the class API.
+
+static constexpr const char* CONFIG_PATH     = "/config/sys-clk/config.ini";
+static constexpr const char* OVERLAY_SECTION = "[overlay]";
+static constexpr const char* COMP_TEMPS_KEY  = "show_component_temps";
+
+static bool readOverlayBool(const char* key, bool defaultValue = false) {
+    FILE* file = fopen(CONFIG_PATH, "r");
+    if (!file) return defaultValue;
+
+    char line[256];
+    bool inOverlay = false;
+    bool result    = defaultValue;
+
+    while (fgets(line, sizeof(line), file)) {
+        // Strip trailing CR/LF
+        size_t len = strlen(line);
+        while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) line[--len] = '\0';
+
+        if (strcmp(line, OVERLAY_SECTION) == 0) { inOverlay = true; continue; }
+        if (inOverlay && line[0] == '[')         { break; }  // next section
+        if (!inOverlay)                          { continue; }
+
+        char* eq = strchr(line, '=');
+        if (!eq) continue;
+        *eq = '\0';
+        if (strcmp(line, key) == 0) {
+            result = (atoi(eq + 1) != 0);
+            break;
+        }
+    }
+    fclose(file);
+    return result;
+}
+
+static void writeOverlayBool(const char* key, bool value) {
+    FILE* file = fopen(CONFIG_PATH, "r");
+    if (!file) return;
+
+    std::vector<std::string> lines;
+    char buf[256];
+    int  overlaySectionIndex = -1;
+    int  existingKeyIndex    = -1;
+    bool inOverlay           = false;
+
+    while (fgets(buf, sizeof(buf), file)) {
+        size_t len = strlen(buf);
+        while (len > 0 && (buf[len-1] == '\n' || buf[len-1] == '\r')) buf[--len] = '\0';
+        lines.push_back(buf);
+
+        int idx = (int)lines.size() - 1;
+        if (strcmp(buf, OVERLAY_SECTION) == 0) { inOverlay = true; overlaySectionIndex = idx; continue; }
+        if (inOverlay && buf[0] == '[')        { inOverlay = false; continue; }
+        if (!inOverlay)                        { continue; }
+
+        char tmp[256];
+        strncpy(tmp, buf, sizeof(tmp));
+        char* eq = strchr(tmp, '=');
+        if (!eq) continue;
+        *eq = '\0';
+        if (strcmp(tmp, key) == 0) existingKeyIndex = idx;
+    }
+    fclose(file);
+
+    std::string entry = std::string(key) + "=" + (value ? "1" : "0");
+
+    if (existingKeyIndex >= 0) {
+        // Key already exists — update it in place
+        lines[existingKeyIndex] = entry;
+    } else if (overlaySectionIndex >= 0) {
+        // Section exists but key is new — insert after section header
+        lines.insert(lines.begin() + overlaySectionIndex + 1, entry);
+    } else {
+        // No [overlay] section yet — append it at the end of the file
+        lines.push_back("");
+        lines.push_back(OVERLAY_SECTION);
+        lines.push_back(entry);
+    }
+
+    FILE* out = fopen(CONFIG_PATH, "w");
+    if (!out) return;
+    for (const auto& l : lines) fprintf(out, "%s\n", l.c_str());
+    fclose(out);
+}
+// ──────────────────────────────────────────────────────────────────────────
+
 BaseMenuGui::BaseMenuGui() : tempColors{tsl::Color(0), tsl::Color(0), tsl::Color(0)}
 {
     isUsingHOC = usingHOC();
@@ -48,6 +136,15 @@ BaseMenuGui::BaseMenuGui() : tempColors{tsl::Color(0), tsl::Color(0), tsl::Color
     
     // Initialize display strings
     memset(displayStrings, 0, sizeof(displayStrings));
+
+    // Restore persisted freq/temp toggle state from config.ini (once per session).
+    // Subsequent BaseMenuGui instances (e.g. navigating away and back) reuse the
+    // already-loaded static value and don't re-read the file.
+    static bool s_tempStateLoaded = false;
+    if (!s_tempStateLoaded) {
+        s_tempStateLoaded    = true;
+        m_showComponentTemps = readOverlayBool(COMP_TEMPS_KEY, false);
+    }
 }
 
 BaseMenuGui::~BaseMenuGui() {
@@ -103,10 +200,12 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer) {
     renderer->drawString(labels[3], false, positions[3], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
     renderer->drawString(labels[4], false, positions[4], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
     
-    // Current frequencies - use pre-formatted strings
-    renderer->drawString(displayStrings[2], false, dataPositions[0], y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // CPU
-    renderer->drawString(displayStrings[3], false, dataPositions[1], y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // GPU
-    renderer->drawString(displayStrings[4], false, dataPositions[2], y, SMALL_TEXT_SIZE, tsl::infoTextColor);  // MEM
+    // Top freq row: target freqs normally; component die temps when HOC toggle active.
+    // displayStrings[2/3/4] = target freqs; displayStrings[17/18/19] = CPU/GPU/MEM temps.
+    const bool showTemps = isUsingHOC && m_showComponentTemps;
+    renderer->drawString(showTemps ? displayStrings[17] : displayStrings[2], false, dataPositions[0], y, SMALL_TEXT_SIZE, showTemps ? tempColors[0] : tsl::infoTextColor);  // CPU
+    renderer->drawString(showTemps ? displayStrings[18] : displayStrings[3], false, dataPositions[1], y, SMALL_TEXT_SIZE, showTemps ? tempColors[1] : tsl::infoTextColor);  // GPU
+    renderer->drawString(showTemps ? displayStrings[19] : displayStrings[4], false, dataPositions[2], y, SMALL_TEXT_SIZE, showTemps ? tempColors[2] : tsl::infoTextColor);  // MEM
     
     y = 149; // Direct assignment (129 + 20)
     
@@ -160,6 +259,9 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer) {
 }
 
 Result sysclkCheck = 1;
+
+// Persist the freq/temp toggle across GUI re-creation (navigation away and back).
+bool BaseMenuGui::m_showComponentTemps = false;
 
 // Optimized refresh - now does all the string formatting once per second
 void BaseMenuGui::refresh()
@@ -316,6 +418,41 @@ void BaseMenuGui::refresh()
     // Power
     sprintf(displayStrings[15], "%d mW", context->power[0]); // Now
     sprintf(displayStrings[16], "%d mW", context->power[1]); // Avg
+
+    // HOC per-component die temperatures for the freq-row toggle.
+    // Reuse the same gradient coloring as the SOC/PCB/Skin row so temps
+    // that are running hot stand out with the same red shift.
+    // These strings only display when m_showComponentTemps is true.
+    if (isUsingHOC) {
+        u32 ct = context->componentTemps[0]; // CPU die
+        sprintf(displayStrings[17], "%u.%u °C", ct / 1000U, (ct % 1000U) / 100U);
+        tempColors[0] = tsl::GradientColor(ct * 0.001f);
+
+        ct = context->componentTemps[1]; // GPU die
+        sprintf(displayStrings[18], "%u.%u °C", ct / 1000U, (ct % 1000U) / 100U);
+        tempColors[1] = tsl::GradientColor(ct * 0.001f);
+
+        ct = context->componentTemps[2]; // MEM / PLLX
+        sprintf(displayStrings[19], "%u.%u °C", ct / 1000U, (ct % 1000U) / 100U);
+        tempColors[2] = tsl::GradientColor(ct * 0.001f);
+    }
+}
+
+bool BaseMenuGui::handleInput(u64 keysDown, u64 keysHeld,
+                              const HidTouchState& touchPos,
+                              HidAnalogStickState leftJoyStick,
+                              HidAnalogStickState rightJoyStick)
+{
+    // Y button toggles between target-freq display and per-component die temp
+    // display in the CPU/GPU/MEM row.  Only meaningful when using HOC (which is
+    // the only sysmodule that supplies componentTemps[]).
+    if (isUsingHOC && (keysDown & KEY_PLUS)) {
+        m_showComponentTemps = !m_showComponentTemps;
+        writeOverlayBool(COMP_TEMPS_KEY, m_showComponentTemps);
+        triggerSettingsFeedback();
+        return true; // consumed — don't pass to list
+    }
+    return false; // let the list handle everything else
 }
 
 tsl::elm::Element* BaseMenuGui::baseUI()

@@ -35,7 +35,10 @@ void AppProfileGui::openFreqChoiceGui(tsl::elm::ListItem* listItem, SysClkProfil
         return;
     }
     tsl::shiftItemFocus(listItem);
-    tsl::changeTo<FreqChoiceGui>(this->profileList->mhzMap[profile][module] * 1000000, hzList, hzCount, module, [this, listItem, profile, module](std::uint32_t hz) {
+    const bool isGlobal = (this->applicationId == SYSCLK_GLOBAL_PROFILE_TID);
+    tsl::changeTo<FreqChoiceGui>(this->profileList->mhzMap[profile][module] * 1000000,
+        hzList, hzCount, module, profile, isGlobal,
+        [this, listItem, profile, module](std::uint32_t hz) {
         this->profileList->mhzMap[profile][module] = hz / 1000000;
         listItem->setValue(formatListFreqMHz(this->profileList->mhzMap[profile][module]));
         Result rc = sysclkIpcSetProfiles(this->applicationId, this->profileList);
@@ -88,7 +91,20 @@ void AppProfileGui::addModuleListItem(SysClkProfile profile, SysClkModule module
 
 void AppProfileGui::addProfileUI(SysClkProfile profile)
 {
-    this->listElement->addItem(new tsl::elm::CategoryHeader(sysclkFormatProfile(profile, true) + std::string(" ") + ult::DIVIDER_SYMBOL + "  Reset"));
+    // Right-aligned label on every header: hex App ID for a title-specific
+    // profile, or "Global" for the global profile TID.
+    char idLabel[20];
+    if (this->applicationId == SYSCLK_GLOBAL_PROFILE_TID) {
+        strncpy(idLabel, "Global", sizeof(idLabel));
+    } else {
+        strncpy(idLabel, "App", sizeof(idLabel));
+    }
+
+    auto* header = new tsl::elm::CategoryHeader(
+        sysclkFormatProfile(profile, true) + std::string(" ") + ult::DIVIDER_SYMBOL + "  Reset");
+    header->setValue(idLabel, tsl::sectionTextColor);
+    this->listElement->addItem(header);
+
     this->addModuleListItem(profile, SysClkModule_CPU);
     this->addModuleListItem(profile, SysClkModule_GPU);
     this->addModuleListItem(profile, SysClkModule_MEM);

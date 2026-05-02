@@ -13,12 +13,16 @@
 #include "../format.h"
 #include "fatal_gui.h"
 
-FreqChoiceGui::FreqChoiceGui(std::uint32_t selectedHz, std::uint32_t* hzList, std::uint32_t hzCount, SysClkModule module, FreqChoiceListener listener)
+FreqChoiceGui::FreqChoiceGui(std::uint32_t selectedHz, std::uint32_t* hzList, std::uint32_t hzCount,
+                             SysClkModule module, SysClkProfile profile, bool isGlobal,
+                             FreqChoiceListener listener)
 {
     this->selectedHz = selectedHz;
     this->hzList = hzList;
     this->hzCount = hzCount;
-    this->module = module;  // Add this
+    this->module = module;
+    this->profile = profile;
+    this->isGlobal = isGlobal;
     this->listener = listener;
 }
 
@@ -45,10 +49,23 @@ tsl::elm::ListItem* FreqChoiceGui::createFreqListItem(std::uint32_t hz, bool sel
 
 void FreqChoiceGui::listUI()
 {
-    // Add CategoryHeader based on module
+    // Header title:
+    //   Profile context : "Global ➟ Docked" / "App ➟ Handheld" etc.
+    //   Override context: "Override"  (profile == SysClkProfile_EnumMax sentinel)
+    // Header value (right-aligned): module name (CPU / GPU / Memory).
     std::string moduleName = sysclkFormatModule(this->module, true);
-    this->listElement->addItem(new tsl::elm::CategoryHeader(moduleName));
-    
+    std::string title;
+    if (this->profile == SysClkProfile_EnumMax) {
+        title = "Override";
+    } else {
+        std::string scope = this->isGlobal ? "Global" : "App";
+        title = scope + " " + ult::DIVIDER_SYMBOL + " " + sysclkFormatProfile(this->profile, true);
+    }
+
+    auto* header = new tsl::elm::CategoryHeader(moduleName);
+    header->setValue(title, tsl::sectionTextColor);
+    this->listElement->addItem(header);
+
     this->listElement->addItem(this->createFreqListItem(0, this->selectedHz == 0));
     std::uint32_t hz;
     for(std::uint32_t i = 0; i < this->hzCount; i++) {
@@ -57,7 +74,7 @@ void FreqChoiceGui::listUI()
         if(moduleName == "Memory" && hz == 204000000) {
             continue;
         }
-        
+
         this->listElement->addItem(this->createFreqListItem(hz, (hz / 1000000) == (this->selectedHz / 1000000)));
     }
     this->listElement->jumpToItem("", "");

@@ -366,7 +366,7 @@ static constexpr int numEntries = 25;
 void MiscGui::listUI()
 {
 
-    this->listElement->addItem(new tsl::elm::CategoryHeader("Module Settings"));
+    this->listElement->addItem(new tsl::elm::CategoryHeader("Settings"));
 
     this->enabledToggle = new tsl::elm::ToggleListItem("Enable", false);
     enabledToggle->setStateChangedListener([this](bool state) {

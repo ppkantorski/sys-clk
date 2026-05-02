@@ -29,13 +29,19 @@ class BaseMenuGui : public BaseGui
         BaseMenuGui();
         ~BaseMenuGui();
         void preDraw(tsl::gfx::Renderer* renderer) override;
+        bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos,
+                         HidAnalogStickState leftJoyStick, HidAnalogStickState rightJoyStick) override;
         tsl::elm::List* listElement;
         tsl::elm::Element* baseUI() override;
         void refresh() override;
         virtual void listUI() = 0;
 
     private:
-        char displayStrings[17][32];  // Pre-formatted display strings
+        char displayStrings[20][32];  // [0-16] existing, [17-19] CPU/GPU/MEM component temps
         tsl::Color tempColors[3];     // Pre-computed temperature colors
         bool isUsingEOS;
+        // When true (HOC only), the CPU/GPU/MEM freq row shows per-component
+        // die temperatures instead of target frequencies.  Toggled by Y button.
+        // Static so the preference survives navigating away and back.
+        static bool m_showComponentTemps;
 };

@@ -34,7 +34,7 @@ void MainGui::listUI()
         this->listElement->addItem(this->enabledToggle);
     }
 
-    this->listElement->addItem(new tsl::elm::CategoryHeader("System Profiles"));
+    this->listElement->addItem(new tsl::elm::CategoryHeader("Profiles"));
 
     tsl::elm::ListItem* appProfileItem = new tsl::elm::ListItem("Edit App Profile");
     appProfileItem->setValue(ult::DROPDOWN_SYMBOL);
@@ -90,7 +90,7 @@ void MainGui::listUI()
 
     if (isUsingHOC) {
 
-        tsl::elm::ListItem* miscItem = new tsl::elm::ListItem("Module Settings");
+        tsl::elm::ListItem* miscItem = new tsl::elm::ListItem("Settings");
         miscItem->setValue(ult::DROPDOWN_SYMBOL);
         miscItem->setClickListener([this, miscItem](u64 keys) {
             if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)

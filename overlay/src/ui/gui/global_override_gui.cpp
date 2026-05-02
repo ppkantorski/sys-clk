@@ -32,7 +32,10 @@ void GlobalOverrideGui::openFreqChoiceGui(SysClkModule module)
         FatalGui::openWithResultCode("sysclkIpcGetFreqList", rc);
         return;
     }
-    tsl::changeTo<FreqChoiceGui>(this->context->overrideFreqs[module], hzList, hzCount, module, [this, module](std::uint32_t hz) {
+    // SysClkProfile_EnumMax signals "Override" context to FreqChoiceGui
+    tsl::changeTo<FreqChoiceGui>(this->context->overrideFreqs[module], hzList, hzCount,
+        module, SysClkProfile_EnumMax, false,
+        [this, module](std::uint32_t hz) {
         Result rc = sysclkIpcSetOverride(module, hz);
         if(R_FAILED(rc))
         {
@@ -89,7 +92,9 @@ void GlobalOverrideGui::addModuleListItem(SysClkModule module)
 
 void GlobalOverrideGui::listUI()
 {
-    this->listElement->addItem(new tsl::elm::CategoryHeader("Temporary Override " + ult::DIVIDER_SYMBOL + "  Reset"));
+    auto* header = new tsl::elm::CategoryHeader("Temporary " + ult::DIVIDER_SYMBOL + "  Reset");
+    header->setValue("Override", tsl::sectionTextColor);
+    this->listElement->addItem(header);
     this->addModuleListItem(SysClkModule_CPU);
     this->addModuleListItem(SysClkModule_GPU);
     this->addModuleListItem(SysClkModule_MEM);
