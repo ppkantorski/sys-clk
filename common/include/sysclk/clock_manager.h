@@ -25,6 +25,12 @@ typedef struct
     int32_t power[SysClkPowerSensor_EnumMax];
     uint32_t ramLoad[SysClkRamLoad_EnumMax];
     uint32_t realVolts[4];
+    // HOC extension: per-component die temperatures (milliCelsius).
+    // CPU die, GPU die, MEM (PLLX proxy on Mariko).
+    // Zero-filled when running against stock sys-clk (struct extended, old
+    // sysmodule sends 104 bytes → these 12 bytes stay zeroed from the
+    // zero-initialised SysClkContext the overlay allocates).
+    uint32_t componentTemps[3];
 } SysClkContext;
 
 typedef struct
