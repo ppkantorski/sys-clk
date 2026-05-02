@@ -34,7 +34,10 @@ void MainGui::listUI()
         this->listElement->addItem(this->enabledToggle);
     }
 
+    this->listElement->addItem(new tsl::elm::CategoryHeader("System Profiles"));
+
     tsl::elm::ListItem* appProfileItem = new tsl::elm::ListItem("Edit App Profile");
+    appProfileItem->setValue(ult::DROPDOWN_SYMBOL);
     appProfileItem->setClickListener([this, appProfileItem](u64 keys) {
         if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
         {
@@ -47,10 +50,9 @@ void MainGui::listUI()
     });
     this->listElement->addItem(appProfileItem);
 
-    this->listElement->addItem(new tsl::elm::CategoryHeader("Advanced"));
-
     if (isUsingHOC) {
         tsl::elm::ListItem* globalProfileItem = new tsl::elm::ListItem("Edit Global Profile");
+        globalProfileItem->setValue(ult::DROPDOWN_SYMBOL);
         globalProfileItem->setClickListener([this, globalProfileItem](u64 keys) {
             if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
             {
@@ -64,7 +66,10 @@ void MainGui::listUI()
         this->listElement->addItem(globalProfileItem);
     }
 
-    tsl::elm::ListItem* globalOverrideItem = new tsl::elm::ListItem("Temporary Overrides");
+    this->listElement->addItem(new tsl::elm::CategoryHeader("Advanced"));
+
+    tsl::elm::ListItem* globalOverrideItem = new tsl::elm::ListItem("Temporary Override");
+    globalOverrideItem->setValue(ult::DROPDOWN_SYMBOL);
     globalOverrideItem->setClickListener([this, globalOverrideItem](u64 keys) {
         if((keys & HidNpadButton_A) == HidNpadButton_A)
         {
@@ -77,10 +82,16 @@ void MainGui::listUI()
     });
     this->listElement->addItem(globalOverrideItem);
 
+
+
+    
+
     //this->listElement->addItem(new tsl::elm::CategoryHeader("Misc"));
 
     if (isUsingHOC) {
-        tsl::elm::ListItem* miscItem = new tsl::elm::ListItem("Settings");
+
+        tsl::elm::ListItem* miscItem = new tsl::elm::ListItem("Module Settings");
+        miscItem->setValue(ult::DROPDOWN_SYMBOL);
         miscItem->setClickListener([this, miscItem](u64 keys) {
             if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
             {

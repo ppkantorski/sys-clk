@@ -25,6 +25,11 @@ class MiscGui : public BaseMenuGui
         
         tsl::elm::ToggleListItem* enabledToggle;
         tsl::elm::NamedStepTrackBar* gpuVminOffsetTrackbar;
-        
+
+        // Tracks the mV value we last wrote so refresh() doesn't clobber the
+        // trackbar position with a stale file read between rapid user clicks.
+        // Sentinel -999 means "not yet initialised" → first refresh always syncs.
+        int m_dvfsOffsetWritten = -999;
+
         u8 frameCounter = 60;
 };

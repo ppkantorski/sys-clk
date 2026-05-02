@@ -341,7 +341,7 @@ void MiscGui::setConfigIntValue(const std::string& iniKey, int value)
 }
 
 void MiscGui::addConfigToggle(const std::string& iniKey, const char* displayName) {
-    tsl::elm::ToggleListItem* toggle = new tsl::elm::ToggleListItem(displayName, configValues[iniKey]);
+    tsl::elm::MiniToggleListItem* toggle = new tsl::elm::MiniToggleListItem(displayName, configValues[iniKey]);
     toggle->setStateChangedListener([this, iniKey](bool state) {
         configValues[iniKey] = state;
         setConfigValue(iniKey, state);
@@ -366,7 +366,7 @@ static constexpr int numEntries = 25;
 void MiscGui::listUI()
 {
 
-    this->listElement->addItem(new tsl::elm::CategoryHeader("Settings"));
+    this->listElement->addItem(new tsl::elm::CategoryHeader("Module Settings"));
 
     this->enabledToggle = new tsl::elm::ToggleListItem("Enable", false);
     enabledToggle->setStateChangedListener([this](bool state) {
@@ -380,6 +380,20 @@ void MiscGui::listUI()
         this->context->enabled = state;
     });
     this->listElement->addItem(this->enabledToggle);
+
+    // HOC Toolkit launcher — only shown when running HOC and the flag file is present
+    //if (isUsingHOC && ult::isFile("/switch/.packages/HOC Toolkit/flags/SHOW_IN_SYSCLK.flag")) {
+    //    auto* hocItem = new tsl::elm::ListItem("HOC Toolkit", ult::DROPDOWN_SYMBOL);
+    //    hocItem->setClickListener([](u64 keys) -> bool {
+    //        if (keys & KEY_A) {
+    //            tsl::setNextOverlay(ult::OVERLAY_PATH + "ovlmenu.ovl", "--direct --comboReturn --comboReturnFrom sys-clk-overlay.ovl --package HOC Toolkit");
+    //            tsl::Overlay::get()->close();
+    //            return true;
+    //        }
+    //        return false;
+    //    });
+    //    this->listElement->addItem(hocItem);
+    //}
 
     // add gap
     this->listElement->addItem(new tsl::elm::CustomDrawer(
@@ -459,11 +473,17 @@ void MiscGui::listUI()
     const int storedGPUVminOffsetValue = getConfigIntValue("dvfs_offset", 0);
     const int trackbarIndex = std::max(0, std::min(numEntries-1, (storedGPUVminOffsetValue + 100) / 5));
     this->gpuVminOffsetTrackbar->setProgress(static_cast<u8>(trackbarIndex));
-    
+    // Seed the write-cache so refresh() never treats the init value as "external"
+    // and resets m_value out from under the user's first click.
+    this->m_dvfsOffsetWritten = storedGPUVminOffsetValue;
+
     // Write back actual signed mV value so HOC sysmodule applies it correctly.
     // index=0 → -100, index=20 → 0, index=24 → +20
     this->gpuVminOffsetTrackbar->setValueChangedListener([this](u8 value) {
         const int storedValue = (static_cast<int>(value) * 5) - 100;
+        // Update write-cache BEFORE the file write so that the 60-frame refresh
+        // cannot see a "changed" value and silently reset m_value mid-click-chain.
+        this->m_dvfsOffsetWritten = storedValue;
         setConfigIntValue("dvfs_offset", storedValue);
         this->lastContextUpdate = armGetSystemTick();
     });
@@ -495,8 +515,15 @@ void MiscGui::refresh() {
         // Update GPU Vmin Offset trackbar (HOC key: dvfs_offset, stored as signed mV)
         if (this->gpuVminOffsetTrackbar != nullptr) {
             const int storedGPUVminOffsetValue = getConfigIntValue("dvfs_offset", 0);
-            const int trackbarIndex = std::max(0, std::min(numEntries-1, (storedGPUVminOffsetValue + 100) / 5));
-            this->gpuVminOffsetTrackbar->setProgress(static_cast<u8>(trackbarIndex));
+            // Only reposition the trackbar when the file value differs from what
+            // we last wrote (i.e. an external process changed it).  Calling
+            // setProgress() unconditionally resets m_value between rapid clicks,
+            // causing the "snaps to a prior step" bug.
+            if (storedGPUVminOffsetValue != this->m_dvfsOffsetWritten) {
+                const int trackbarIndex = std::max(0, std::min(numEntries-1, (storedGPUVminOffsetValue + 100) / 5));
+                this->gpuVminOffsetTrackbar->setProgress(static_cast<u8>(trackbarIndex));
+                this->m_dvfsOffsetWritten = storedGPUVminOffsetValue;
+            }
         }
     }
 }
