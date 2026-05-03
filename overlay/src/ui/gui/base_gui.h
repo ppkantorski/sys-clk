@@ -35,6 +35,9 @@ class BaseGui : public tsl::Gui
 };
 
 
-extern std::string getVersionString();
 extern bool usingHOC();
 extern bool usingEOS();
+
+// Hardware SoC detection (cached after first call)
+extern bool IsMariko();
+extern bool IsErista();

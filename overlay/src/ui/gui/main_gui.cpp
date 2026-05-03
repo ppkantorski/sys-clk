@@ -36,7 +36,7 @@ void MainGui::listUI()
 
     this->listElement->addItem(new tsl::elm::CategoryHeader("Profiles"));
 
-    tsl::elm::ListItem* appProfileItem = new tsl::elm::ListItem("Edit App Profile");
+    tsl::elm::ListItem* appProfileItem = new tsl::elm::ListItem("Edit App");
     appProfileItem->setValue(ult::DROPDOWN_SYMBOL);
     appProfileItem->setClickListener([this, appProfileItem](u64 keys) {
         if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
@@ -51,7 +51,7 @@ void MainGui::listUI()
     this->listElement->addItem(appProfileItem);
 
     if (isUsingHOC) {
-        tsl::elm::ListItem* globalProfileItem = new tsl::elm::ListItem("Edit Global Profile");
+        tsl::elm::ListItem* globalProfileItem = new tsl::elm::ListItem("Edit Global");
         globalProfileItem->setValue(ult::DROPDOWN_SYMBOL);
         globalProfileItem->setClickListener([this, globalProfileItem](u64 keys) {
             if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
@@ -66,9 +66,7 @@ void MainGui::listUI()
         this->listElement->addItem(globalProfileItem);
     }
 
-    this->listElement->addItem(new tsl::elm::CategoryHeader("Advanced"));
-
-    tsl::elm::ListItem* globalOverrideItem = new tsl::elm::ListItem("Temporary Override");
+    tsl::elm::ListItem* globalOverrideItem = new tsl::elm::ListItem("Edit Temporary");
     globalOverrideItem->setValue(ult::DROPDOWN_SYMBOL);
     globalOverrideItem->setClickListener([this, globalOverrideItem](u64 keys) {
         if((keys & HidNpadButton_A) == HidNpadButton_A)
@@ -83,7 +81,7 @@ void MainGui::listUI()
     this->listElement->addItem(globalOverrideItem);
 
 
-
+    this->listElement->addItem(new tsl::elm::CategoryHeader("Advanced"));
     
 
     //this->listElement->addItem(new tsl::elm::CategoryHeader("Misc"));

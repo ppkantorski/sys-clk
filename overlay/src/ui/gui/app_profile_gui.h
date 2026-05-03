@@ -13,7 +13,8 @@
 #include "../../ipc.h"
 #include "base_menu_gui.h"
 #include "freq_choice_gui.h"
-#define SYSCLK_GLOBAL_PROFILE_TID       0xA111111111111111
+
+#define SYSCLK_GLOBAL_PROFILE_TID  0xA111111111111111ULL
 
 class AppProfileGui : public BaseMenuGui
 {
@@ -23,6 +24,7 @@ class AppProfileGui : public BaseMenuGui
 
         void openFreqChoiceGui(tsl::elm::ListItem* listItem, SysClkProfile profile, SysClkModule module);
         void addModuleListItem(SysClkProfile profile, SysClkModule module);
+        void addGovernorSection(SysClkProfile profile);
         void addProfileUI(SysClkProfile profile);
 
     public:

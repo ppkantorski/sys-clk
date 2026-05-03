@@ -35,6 +35,8 @@ class BaseMenuGui : public BaseGui
         tsl::elm::Element* baseUI() override;
         void refresh() override;
         virtual void listUI() = 0;
+        static void applyRefreshRateHz(int hz);
+        static int  getRefreshRateHz();
 
     private:
         char displayStrings[20][32];  // [0-16] existing, [17-19] CPU/GPU/MEM component temps

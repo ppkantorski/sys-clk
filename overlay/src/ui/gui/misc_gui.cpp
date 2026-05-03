@@ -5,6 +5,47 @@
 #include <cstring>
 //#include <sstream>
 
+// ── RefreshRateGui ────────────────────────────────────────────────────────
+
+constexpr int RefreshRateGui::RATES[];
+
+tsl::elm::ListItem* RefreshRateGui::createRateItem(int hz, bool selected)
+{
+    char label[16];
+    snprintf(label, sizeof(label), "%d Hz", hz);
+    tsl::elm::ListItem* item = new tsl::elm::ListItem(label, "", true);
+    item->setValue(selected ? "\uE14B" : "");
+
+    item->setClickListener([this, hz](u64 keys) -> bool {
+        if ((keys & KEY_A) == KEY_A) {
+            BaseMenuGui::applyRefreshRateHz(hz);
+            tsl::goBack();
+            return true;
+        }
+        return false;
+    });
+    return item;
+}
+
+void RefreshRateGui::listUI()
+{
+    auto* header = new tsl::elm::CategoryHeader("Overlay Settings");
+    header->setValue("Refresh Rate", tsl::sectionTextColor);
+    this->listElement->addItem(header);
+
+    const int current = BaseMenuGui::getRefreshRateHz();
+    char selectedLabel[16];
+    snprintf(selectedLabel, sizeof(selectedLabel), "%d Hz", current);
+
+    for (int i = 0; i < RATE_COUNT; i++) {
+        this->listElement->addItem(createRateItem(RATES[i], RATES[i] == current));
+    }
+    // Jump cursor to the currently-selected item
+    this->listElement->jumpToItem(selectedLabel, "");
+}
+
+// ── MiscGui ───────────────────────────────────────────────────────────────
+
 MiscGui::MiscGui()
 {
     
@@ -13,6 +54,7 @@ MiscGui::MiscGui()
     configValues["ow_boost"]        = getConfigValue("ow_boost");           // HOC: ow_boost (was boost_gpu_override)
     configValues["auto_cpu_boost"]  = getConfigValue("auto_cpu_boost");
     configValues["reversenx_sync"]  = getConfigValue("reversenx_sync");     // consistent key name
+    configValues["allow_governing"] = getConfigValue("allow_governing", false); // HOC: enable governor
     configValues["dvfs_mode"]       = getConfigValue("dvfs_mode", true);  // sysmodule default is ON
     // dvfs_offset handled separately as trackbars
 }
@@ -340,6 +382,111 @@ void MiscGui::setConfigIntValue(const std::string& iniKey, int value)
     }
 }
 
+// ---------------------------------------------------------------------------
+// [overlay] section helpers — read/write the [overlay] INI section
+// ---------------------------------------------------------------------------
+
+bool MiscGui::getOverlayConfigValue(const std::string& iniKey, bool defaultValue)
+{
+    FILE* file = fopen("/config/sys-clk/config.ini", "r");
+    if (!file)
+        return defaultValue;
+
+    char line[512];
+    bool inOverlaySection = false;
+    bool result = defaultValue;
+
+    while (fgets(line, sizeof(line), file)) {
+        size_t len = strlen(line);
+        if (len > 0 && line[len - 1] == '\n') line[--len] = '\0';
+
+        char* start = line;
+        while (*start == ' ' || *start == '\t') start++;
+        char* end = start + strlen(start) - 1;
+        while (end > start && (*end == ' ' || *end == '\t')) { *end = '\0'; end--; }
+
+        if (strcmp(start, "[overlay]") == 0) { inOverlaySection = true; continue; }
+        if (strlen(start) > 0 && start[0] == '[') { inOverlaySection = false; continue; }
+
+        if (inOverlaySection) {
+            char* equalPos = strchr(start, '=');
+            if (equalPos) {
+                *equalPos = '\0';
+                char* key = start;
+                char* value = equalPos + 1;
+                char* ke = key + strlen(key) - 1;
+                while (ke > key && (*ke == ' ' || *ke == '\t')) { *ke = '\0'; ke--; }
+                while (*value == ' ' || *value == '\t') value++;
+                if (iniKey == key) {
+                    result = (strcmp(value, "1") == 0);
+                    break;
+                }
+            }
+        }
+    }
+    fclose(file);
+    return result;
+}
+
+void MiscGui::setOverlayConfigValue(const std::string& iniKey, bool value)
+{
+    FILE* file = fopen("/config/sys-clk/config.ini", "r");
+    std::vector<std::string> lines;
+
+    if (file) {
+        char line[512];
+        while (fgets(line, sizeof(line), file)) {
+            size_t len = strlen(line);
+            if (len > 0 && line[len - 1] == '\n') line[len - 1] = '\0';
+            lines.push_back(std::string(line));
+        }
+        fclose(file);
+    }
+
+    bool inOverlaySection = false;
+    bool keyFound = false;
+    int overlaySectionIndex = -1;
+
+    for (size_t i = 0; i < lines.size(); i++) {
+        std::string trimmed = lines[i];
+        trimmed.erase(0, trimmed.find_first_not_of(" \t"));
+        trimmed.erase(trimmed.find_last_not_of(" \t") + 1);
+
+        if (trimmed == "[overlay]") { inOverlaySection = true; overlaySectionIndex = (int)i; continue; }
+        if (!trimmed.empty() && trimmed[0] == '[') { inOverlaySection = false; continue; }
+
+        if (inOverlaySection) {
+            size_t eq = trimmed.find('=');
+            if (eq != std::string::npos) {
+                std::string k = trimmed.substr(0, eq);
+                k.erase(0, k.find_first_not_of(" \t"));
+                k.erase(k.find_last_not_of(" \t") + 1);
+                if (k == iniKey) {
+                    lines[i] = iniKey + "=" + (value ? "1" : "0");
+                    keyFound = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (!keyFound) {
+        if (overlaySectionIndex == -1) {
+            lines.push_back("[overlay]");
+            lines.push_back(iniKey + "=" + (value ? "1" : "0"));
+        } else {
+            lines.insert(lines.begin() + overlaySectionIndex + 1, iniKey + "=" + (value ? "1" : "0"));
+        }
+    }
+
+    FILE* outFile = fopen("/config/sys-clk/config.ini", "w");
+    if (outFile) {
+        for (const auto& fileLine : lines)
+            fprintf(outFile, "%s\n", fileLine.c_str());
+        fclose(outFile);
+    }
+}
+
 void MiscGui::addConfigToggle(const std::string& iniKey, const char* displayName) {
     tsl::elm::MiniToggleListItem* toggle = new tsl::elm::MiniToggleListItem(displayName, configValues[iniKey]);
     toggle->setStateChangedListener([this, iniKey](bool state) {
@@ -365,8 +512,9 @@ static constexpr int numEntries = 25;
 
 void MiscGui::listUI()
 {
-
-    this->listElement->addItem(new tsl::elm::CategoryHeader("Settings"));
+    auto* moduleHeader = new tsl::elm::CategoryHeader("Module");
+    moduleHeader->setValue("Settings", tsl::sectionTextColor);
+    this->listElement->addItem(moduleHeader);
 
     this->enabledToggle = new tsl::elm::ToggleListItem("Enable", false);
     enabledToggle->setStateChangedListener([this](bool state) {
@@ -407,7 +555,22 @@ void MiscGui::listUI()
     addConfigToggle("ow_boost",        "Boost GPU Override");  // HOC key: ow_boost
     addConfigToggle("auto_cpu_boost",  "Auto CPU Boost");
     addConfigToggle("reversenx_sync",  "Sync ReverseNX");
-    
+
+    // Allow Governing — HOC only.
+    // Dedicated toggle (not addConfigToggle) so we can track it separately.
+    // Writes allow_governing directly to [values] in config.ini.
+    // The sysmodule picks it up via Refresh() on the next polling tick.
+    if (usingHOC()) {
+        auto* govToggle = new tsl::elm::MiniToggleListItem("Allow Governing", configValues["allow_governing"]);
+        govToggle->setStateChangedListener([this](bool state) {
+            configValues["allow_governing"] = state;
+            setConfigValue("allow_governing", state);
+            this->lastContextUpdate = armGetSystemTick();
+        });
+        this->listElement->addItem(govToggle);
+        this->configToggles["allow_governing"] = govToggle;
+    }
+
     // Add GPU DVFS mode as a 2-step trackbar: HOC only has Disabled(0) and Hijack(1)
     //this->autoGPUVminTrackbar = new tsl::elm::NamedStepTrackBar("", {
     //    "Off",
@@ -489,6 +652,29 @@ void MiscGui::listUI()
     });
     
     this->listElement->addItem(this->gpuVminOffsetTrackbar);
+
+    // ── Overlay Settings ─────────────────────────────────────────────────
+    auto* overlayHeader = new tsl::elm::CategoryHeader("Overlay");
+    overlayHeader->setValue("Settings", tsl::sectionTextColor);
+    this->listElement->addItem(overlayHeader);
+
+    // Refresh Rate dropdown item
+    this->refreshRateItem = new tsl::elm::MiniListItem("Refresh Rate", ult::DROPDOWN_SYMBOL);
+    {
+        // Display the current rate as the item value
+        char valStr[16];
+        snprintf(valStr, sizeof(valStr), "%d Hz", BaseMenuGui::getRefreshRateHz());
+        this->refreshRateItem->setValue(valStr);
+    }
+    this->refreshRateItem->setClickListener([this](u64 keys) -> bool {
+        if ((keys & HidNpadButton_A) == HidNpadButton_A) {
+            tsl::shiftItemFocus(this->refreshRateItem);
+            tsl::changeTo<RefreshRateGui>();
+            return true;
+        }
+        return false;
+    });
+    this->listElement->addItem(this->refreshRateItem);
 }
 
 void MiscGui::refresh() {
@@ -505,6 +691,14 @@ void MiscGui::refresh() {
     {
         frameCounter = 0;
         updateConfigToggles();
+
+        // Keep the Refresh Rate item value display in sync (e.g. after returning
+        // from RefreshRateGui or if the config was edited externally).
+        if (this->refreshRateItem != nullptr) {
+            char valStr[16];
+            snprintf(valStr, sizeof(valStr), "%d Hz", BaseMenuGui::getRefreshRateHz());
+            this->refreshRateItem->setValue(valStr);
+        }
         
         // Update Auto GPU Vmin trackbar (HOC key: dvfs_mode, range 0-1)
         //if (this->autoGPUVminTrackbar != nullptr) {
