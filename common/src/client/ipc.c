@@ -126,3 +126,16 @@ Result sysclkIpcGetFreqList(SysClkModule module, u32* list, u32 maxCount, u32* o
         .buffers = {{list, maxCount * sizeof(u32)}},
     );
 }
+
+Result sysclkIpcGetProfileGovernors(u64 tid, SysClkProfileGovernorList* out_governors)
+{
+    return serviceDispatchInOut(&g_sysclkSrv, SysClkIpcCmd_GetProfileGovernors, tid, *out_governors);
+}
+
+Result sysclkIpcSetProfileGovernors(u64 tid, SysClkProfileGovernorList* governors)
+{
+    SysClkIpc_SetProfileGovernors_Args args;
+    args.tid = tid;
+    memcpy(&args.governors, governors, sizeof(SysClkProfileGovernorList));
+    return serviceDispatchIn(&g_sysclkSrv, SysClkIpcCmd_SetProfileGovernors, args);
+}

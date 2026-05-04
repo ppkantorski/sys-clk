@@ -31,6 +31,10 @@ Result sysclkIpcSetProfiles(u64 tid, SysClkTitleProfileList* profiles);
 Result sysclkIpcGetConfigValues(SysClkConfigValueList* out_configValues);
 Result sysclkIpcSetConfigValues(SysClkConfigValueList* configValues);
 Result sysclkIpcGetFreqList(SysClkModule module, u32* list, u32 maxCount, u32* outCount);
+// HOC-only: get/set per-profile governor packed values (cmd 12/13)
+// Stock sys-clk returns an error on unknown commands; callers check R_FAILED.
+Result sysclkIpcGetProfileGovernors(u64 tid, SysClkProfileGovernorList* out_governors);
+Result sysclkIpcSetProfileGovernors(u64 tid, SysClkProfileGovernorList* governors);
 
 static inline Result sysclkIpcRemoveOverride(SysClkModule module)
 {

@@ -31,6 +31,9 @@ enum SysClkIpcCmd
     SysClkIpcCmd_GetConfigValues = 9,
     SysClkIpcCmd_SetConfigValues = 10,
     SysClkIpcCmd_GetFreqList = 11,
+    // HOC-only commands — stock sys-clk returns error on unknown cmds, handled gracefully
+    SysClkIpcCmd_GetProfileGovernors = 12,
+    SysClkIpcCmd_SetProfileGovernors = 13,
 };
 
 
@@ -51,3 +54,19 @@ typedef struct
     SysClkModule module;
     uint32_t maxCount;
 } SysClkIpc_GetFreqList_Args;
+
+// Packed per-profile governor values (one uint32_t per SysClkProfile).
+// bits 7:0  = CPU governor state (0=DoNotOverride, 1=Disabled, 2=Enabled)
+// bits 15:8 = GPU governor state
+// bits 23:16 = VRR governor state
+// Layout matches GovernorStatePack() in hocclk/board.h so both sides agree.
+typedef struct
+{
+    uint32_t packed[SysClkProfile_EnumMax];
+} SysClkProfileGovernorList;
+
+typedef struct
+{
+    uint64_t tid;
+    SysClkProfileGovernorList governors;
+} SysClkIpc_SetProfileGovernors_Args;
