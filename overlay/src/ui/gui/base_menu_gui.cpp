@@ -564,6 +564,7 @@ tsl::elm::Element* BaseMenuGui::baseUI()
 {
     auto* list = new tsl::elm::List();
     this->listElement = list;
+    this->listElement->setCenterOffset(-61.0f - 4.0f);
     this->listUI();
 
     return list;

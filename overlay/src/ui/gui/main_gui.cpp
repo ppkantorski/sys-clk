@@ -42,7 +42,7 @@ void MainGui::listUI()
         if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
         {
             tsl::shiftItemFocus(appProfileItem);
-            AppProfileGui::changeTo(this->context->applicationId);
+            AppProfileGui::changeTo(this->context->applicationId, this->context->profile);
             return true;
         }
 
@@ -57,7 +57,7 @@ void MainGui::listUI()
             if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
             {
                 tsl::shiftItemFocus(globalProfileItem);
-                AppProfileGui::changeTo(SYSCLK_GLOBAL_PROFILE_TID);
+                AppProfileGui::changeTo(SYSCLK_GLOBAL_PROFILE_TID, this->context->profile);
                 return true;
             }
 

@@ -19,203 +19,44 @@
 #include <string>
 
 // ---------------------------------------------------------------------------
-// Governor config.ini helpers
-//
-// sys-clk-hoc stores governor state under each app's TID section:
-//   [{16-char uppercase hex TID}]
-//   handheld_governor=1           ; packed u32: bits 7:0=CPU, bits 15:8=GPU
-//   docked_governor=2             ; 0=Do not override, 1=Disabled, 2=Enabled
-//
-// The sysmodule reads/writes this on every profile update.  The overlay
-// writes Governor directly to config.ini — the sysmodule picks it up on
-// the next clock-manager tick.
-// ---------------------------------------------------------------------------
-
-static const char* profileIniName(SysClkProfile p)
-{
-    switch (p) {
-    case SysClkProfile_Docked:                   return "docked";
-    case SysClkProfile_Handheld:                 return "handheld";
-    case SysClkProfile_HandheldCharging:         return "handheld_charging";
-    case SysClkProfile_HandheldChargingUSB:      return "handheld_charging_usb";
-    case SysClkProfile_HandheldChargingOfficial: return "handheld_charging_official";
-    default:                                     return nullptr;
-    }
-}
-
-static uint32_t readGovernorPacked(uint64_t tid, SysClkProfile profile)
-{
-    const char* pname = profileIniName(profile);
-    if (!pname) return 0;
-
-    char section[17];
-    snprintf(section, sizeof(section), "%016llX", (unsigned long long)tid);
-
-    char key[64];
-    snprintf(key, sizeof(key), "%s_governor", pname);
-
-    FILE* f = fopen("/config/sys-clk/config.ini", "r");
-    if (!f) return 0;
-
-    char line[256];
-    bool inSection = false;
-    uint32_t result = 0;
-
-    while (fgets(line, sizeof(line), f)) {
-        size_t len = strlen(line);
-        if (len > 0 && line[len - 1] == '\n') line[--len] = '\0';
-
-        char* p = line;
-        while (*p == ' ' || *p == '\t') ++p;
-        if (*p == ';' || *p == '#') continue;
-
-        if (*p == '[') {
-            char sec[32] = {};
-            strncpy(sec, p + 1, sizeof(sec) - 1);
-            char* close = strchr(sec, ']');
-            if (close) *close = '\0';
-            inSection = (strcmp(sec, section) == 0);
-            continue;
-        }
-
-        if (!inSection) continue;
-
-        char* eq = strchr(p, '=');
-        if (!eq) continue;
-        *eq = '\0';
-
-        char* ke = p + strlen(p) - 1;
-        while (ke > p && (*ke == ' ' || *ke == '\t')) *ke-- = '\0';
-
-        char* val = eq + 1;
-        while (*val == ' ' || *val == '\t') ++val;
-
-        if (strcmp(p, key) == 0) {
-            result = (uint32_t)strtoul(val, nullptr, 10);
-            break;
-        }
-    }
-
-    fclose(f);
-    return result;
-}
-
-static void writeGovernorPacked(uint64_t tid, SysClkProfile profile, uint32_t value)
-{
-    const char* pname = profileIniName(profile);
-    if (!pname) return;
-
-    char section[17];
-    snprintf(section, sizeof(section), "%016llX", (unsigned long long)tid);
-
-    char key[64];
-    snprintf(key, sizeof(key), "%s_governor", pname);
-
-    // Read full file
-    FILE* f = fopen("/config/sys-clk/config.ini", "r");
-    std::vector<std::string> lines;
-    if (f) {
-        char line[512];
-        while (fgets(line, sizeof(line), f)) {
-            size_t len = strlen(line);
-            if (len > 0 && line[len - 1] == '\n') line[--len] = '\0';
-            lines.push_back(std::string(line));
-        }
-        fclose(f);
-    }
-
-    bool inSection = false;
-    bool keyFound  = false;
-    int  secStart  = -1;
-
-    for (size_t i = 0; i < lines.size(); i++) {
-        std::string t = lines[i];
-        t.erase(0, t.find_first_not_of(" \t"));
-        if (t.find_last_not_of(" \t") != std::string::npos)
-            t.erase(t.find_last_not_of(" \t") + 1);
-
-        if (t.size() > 1 && t[0] == '[') {
-            std::string sn = t.substr(1);
-            auto cl = sn.find(']');
-            if (cl != std::string::npos) sn = sn.substr(0, cl);
-            inSection = (sn == section);
-            if (inSection) secStart = (int)i;
-            continue;
-        }
-
-        if (!inSection) continue;
-
-        size_t eq = t.find('=');
-        if (eq == std::string::npos) continue;
-
-        std::string k = t.substr(0, eq);
-        k.erase(0, k.find_first_not_of(" \t"));
-        if (k.find_last_not_of(" \t") != std::string::npos)
-            k.erase(k.find_last_not_of(" \t") + 1);
-
-        if (k == key) {
-            if (value == 0)
-                lines.erase(lines.begin() + i);
-            else
-                lines[i] = std::string(key) + "=" + std::to_string(value);
-            keyFound = true;
-            break;
-        }
-    }
-
-    if (!keyFound && value != 0) {
-        if (secStart == -1) {
-            lines.push_back(std::string("[") + section + "]");
-            lines.push_back(std::string(key) + "=" + std::to_string(value));
-        } else {
-            lines.insert(lines.begin() + secStart + 1,
-                         std::string(key) + "=" + std::to_string(value));
-        }
-    }
-
-    FILE* out = fopen("/config/sys-clk/config.ini", "w");
-    if (out) {
-        for (const auto& l : lines)
-            fprintf(out, "%s\n", l.c_str());
-        fclose(out);
-    }
-}
-
-// ---------------------------------------------------------------------------
 // GovernorProfileSubMenuGui
-// Shows CPU / GPU governor trackbars (Do not override / Disabled / Enabled).
-// Reads and writes the packed u32 directly to config.ini, then immediately
-// triggers a ForceRefresh+SetClocks cycle in the sysmodule via IPC so the
-// change takes effect within one tick interval (~300 ms) without waiting
-// for FAT mtime to advance (2-second resolution on SD cards).
+//
+// Mirrors hoc-clk's design exactly:
+//   - Holds a pointer to the parent AppProfileGui's m_governors array
+//   - Reads and writes governor packed values in-place via IPC (no file I/O)
+//   - Calls sysclkIpcSetProfileGovernors (HOC cmd 13) after every change
+//
+// The global allow_governing toggle is still read from config.ini via
+// FreqChoiceGui::readShowGoverning() — it is a HOC-specific value not
+// exposed through the stock sys-clk IPC config value list.
 // ---------------------------------------------------------------------------
 
 class GovernorProfileSubMenuGui : public BaseMenuGui {
-    uint64_t      applicationId;
-    SysClkProfile profile;
+    uint64_t               m_tid;
+    SysClkProfileGovernorList* m_governors;  // pointer into AppProfileGui::m_governors
+    SysClkProfile          m_profile;
 
 public:
-    GovernorProfileSubMenuGui(uint64_t appId, SysClkProfile prof)
-        : applicationId(appId), profile(prof) {}
+    GovernorProfileSubMenuGui(uint64_t tid, SysClkProfileGovernorList* governors, SysClkProfile profile)
+        : m_tid(tid), m_governors(governors), m_profile(profile) {}
 
     void listUI() override {
         auto* header = new tsl::elm::CategoryHeader("Governor");
-
         char idLabel[20];
-        if (this->applicationId == SYSCLK_GLOBAL_PROFILE_TID)
+        if (m_tid == SYSCLK_GLOBAL_PROFILE_TID)
             strncpy(idLabel, "Global", sizeof(idLabel));
         else
             strncpy(idLabel, "App", sizeof(idLabel));
-
-        header->setValue(std::string(idLabel) + " " + ult::DIVIDER_SYMBOL + " " + sysclkFormatProfile(this->profile, true), tsl::sectionTextColor);
+        header->setValue(std::string(idLabel) + " " + ult::DIVIDER_SYMBOL + " " +
+                         sysclkFormatProfile(m_profile, true), tsl::sectionTextColor);
         this->listElement->addItem(header);
 
         static constexpr struct { const char* label; int shift; } kAll[] = {
-            { "CPU", 0 },
-            { "GPU", 8 },
+            { "CPU",  0 },
+            { "GPU",  8 },
         };
 
-        uint32_t packed = readGovernorPacked(this->applicationId, this->profile);
+        uint32_t packed = m_governors->packed[m_profile];
 
         for (int i = 0; i < 2; i++) {
             u8 cur = (packed >> kAll[i].shift) & 0xFF;
@@ -227,18 +68,17 @@ public:
             );
             bar->setProgress(cur);
 
-            int     shift  = kAll[i].shift;
-            uint64_t tid   = this->applicationId;
-            SysClkProfile prof = this->profile;
+            int    shift     = kAll[i].shift;
+            uint64_t tid     = m_tid;
+            SysClkProfileGovernorList* gov = m_governors;
+            SysClkProfile prof = m_profile;
 
-            bar->setValueChangedListener([tid, prof, shift](u8 value) {
-                uint32_t p = readGovernorPacked(tid, prof);
-                p = (p & ~(0xFFu << shift)) | ((uint32_t)value << shift);
-                // Write to disk — sysmodule picks this up via Refresh() within
-                // its normal polling interval.  Do NOT call sysclkIpcSetProfiles
-                // here: ForceRefresh inside that handler races with this write and
-                // can read a stale file, causing ini_putsection to erase the key.
-                writeGovernorPacked(tid, prof, p);
+            bar->setValueChangedListener([tid, gov, prof, shift](u8 value) {
+                // Update in-place (same pattern as hoc-clk's profileList->mhzMap[prof][Governor])
+                uint32_t& packed = gov->packed[prof];
+                packed = (packed & ~(0xFFu << shift)) | ((uint32_t)value << shift);
+                // Push to sysmodule via IPC — no file writes needed
+                sysclkIpcSetProfileGovernors(tid, gov);
             });
 
             this->listElement->addItem(bar);
@@ -250,10 +90,13 @@ public:
 // AppProfileGui
 // ---------------------------------------------------------------------------
 
-AppProfileGui::AppProfileGui(std::uint64_t applicationId, SysClkTitleProfileList* profileList)
+AppProfileGui::AppProfileGui(std::uint64_t applicationId, SysClkTitleProfileList* profileList,
+                             SysClkProfileGovernorList governors, SysClkProfile initialProfile)
 {
-    this->applicationId = applicationId;
-    this->profileList   = profileList;
+    this->applicationId  = applicationId;
+    this->profileList    = profileList;
+    this->m_governors    = governors;
+    this->m_initialProfile = initialProfile;
 }
 
 AppProfileGui::~AppProfileGui()
@@ -274,7 +117,6 @@ void AppProfileGui::openFreqChoiceGui(tsl::elm::ListItem* listItem,
         return;
     }
 
-    // Governing annotation labels — HOC mode + show_governing only
     std::map<uint32_t, std::string> govLabels;
     if (usingHOC() && FreqChoiceGui::readShowGoverning()) {
         if (module == SysClkModule_CPU)
@@ -304,8 +146,11 @@ void AppProfileGui::openFreqChoiceGui(tsl::elm::ListItem* listItem,
 
 void AppProfileGui::addModuleListItem(SysClkProfile profile, SysClkModule module)
 {
-    tsl::elm::ListItem* listItem =
-        new tsl::elm::ListItem(sysclkFormatModule(module, true));
+    std::string label = sysclkFormatModule(module, true);
+    if (module == SysClkModule_CPU)
+        label += std::string("?") + sysclkFormatProfile(profile, false);
+
+    tsl::elm::ListItem* listItem = new tsl::elm::ListItem(label);
     listItem->setValue(formatListFreqMHz(this->profileList->mhzMap[profile][module]));
     listItem->setClickListener([this, listItem, profile, module](u64 keys) {
         if((keys & KEY_A) == KEY_A)
@@ -337,7 +182,6 @@ void AppProfileGui::addModuleListItem(SysClkProfile profile, SysClkModule module
 
 void AppProfileGui::addGovernorSection(SysClkProfile profile)
 {
-    // Only shown in HOC mode when Allow Governing is enabled
     if (!usingHOC() || !FreqChoiceGui::readShowGoverning())
         return;
 
@@ -347,7 +191,7 @@ void AppProfileGui::addGovernorSection(SysClkProfile profile)
         if ((keys & HidNpadButton_A) == HidNpadButton_A) {
             tsl::shiftItemFocus(item);
             tsl::changeTo<GovernorProfileSubMenuGui>(
-                this->applicationId, profile
+                this->applicationId, &this->m_governors, profile
             );
             return true;
         }
@@ -366,7 +210,7 @@ void AppProfileGui::addProfileUI(SysClkProfile profile)
 
     auto* header = new tsl::elm::CategoryHeader(
         sysclkFormatProfile(profile, true) + std::string(" ") +
-        ult::DIVIDER_SYMBOL + "  Reset");
+        ult::DIVIDER_SYMBOL + "  Reset");
     header->setValue(idLabel, tsl::sectionTextColor);
     this->listElement->addItem(header);
 
@@ -383,9 +227,14 @@ void AppProfileGui::listUI()
     this->addProfileUI(SysClkProfile_HandheldCharging);
     this->addProfileUI(SysClkProfile_HandheldChargingOfficial);
     this->addProfileUI(SysClkProfile_HandheldChargingUSB);
+
+    if (m_initialProfile < SysClkProfile_EnumMax) {
+        std::string jumpTag = std::string("CPU?") + sysclkFormatProfile(m_initialProfile, false);
+        this->listElement->jumpToItem(jumpTag, "", true);
+    }
 }
 
-void AppProfileGui::changeTo(std::uint64_t applicationId)
+void AppProfileGui::changeTo(std::uint64_t applicationId, SysClkProfile initialProfile)
 {
     SysClkTitleProfileList* profileList = new SysClkTitleProfileList;
     Result rc = sysclkIpcGetProfiles(applicationId, profileList);
@@ -396,7 +245,15 @@ void AppProfileGui::changeTo(std::uint64_t applicationId)
         return;
     }
 
-    tsl::changeTo<AppProfileGui>(applicationId, profileList);
+    // Fetch per-profile governor values in HOC mode (cmd 12).
+    // In stock sys-clk mode the call returns an error and we just zero-init.
+    SysClkProfileGovernorList governors = {};
+    if (usingHOC()) {
+        sysclkIpcGetProfileGovernors(applicationId, &governors);
+        // Ignore R_FAILED — governors stays zero-initialised (no governor shown)
+    }
+
+    tsl::changeTo<AppProfileGui>(applicationId, profileList, governors, initialProfile);
 }
 
 void AppProfileGui::update()

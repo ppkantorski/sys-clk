@@ -183,7 +183,7 @@ void FreqChoiceGui::listUI()
     std::string moduleName = sysclkFormatModule(this->module, true);
     std::string title;
     if (this->profile == SysClkProfile_EnumMax) {
-        title = "Temporary " + ult::DIVIDER_SYMBOL + "Override";
+        title = "Temporary " + ult::DIVIDER_SYMBOL + " Override";
     } else {
         std::string scope = this->isGlobal ? "Global" : "App";
         title = scope + " " + ult::DIVIDER_SYMBOL + " " + sysclkFormatProfile(this->profile, true);
@@ -216,5 +216,5 @@ void FreqChoiceGui::listUI()
         );
     }
 
-    this->listElement->jumpToItem("", "");
+    this->listElement->jumpToItem("", ult::CHECKMARK_SYMBOL);
 }

@@ -21,6 +21,11 @@ class AppProfileGui : public BaseMenuGui
     protected:
         std::uint64_t applicationId;
         SysClkTitleProfileList* profileList;
+        SysClkProfile m_initialProfile;
+        // Per-profile governor packed values (HOC mode only).
+        // Mirrors hoc-clk's profileList->mhzMap[profile][HocClkModule_Governor].
+        // Fetched via IPC on changeTo; sent back via IPC when the user changes a bar.
+        SysClkProfileGovernorList m_governors;
 
         void openFreqChoiceGui(tsl::elm::ListItem* listItem, SysClkProfile profile, SysClkModule module);
         void addModuleListItem(SysClkProfile profile, SysClkModule module);
@@ -28,9 +33,12 @@ class AppProfileGui : public BaseMenuGui
         void addProfileUI(SysClkProfile profile);
 
     public:
-        AppProfileGui(std::uint64_t applicationId, SysClkTitleProfileList* profileList);
+        AppProfileGui(std::uint64_t applicationId, SysClkTitleProfileList* profileList,
+                      SysClkProfileGovernorList governors,
+                      SysClkProfile initialProfile = SysClkProfile_Handheld);
         ~AppProfileGui();
         void listUI() override;
-        static void changeTo(std::uint64_t applicationId);
+        static void changeTo(std::uint64_t applicationId,
+                             SysClkProfile initialProfile = SysClkProfile_Handheld);
         void update() override;
 };
