@@ -31,6 +31,11 @@ typedef struct
     // sysmodule sends 104 bytes → these 12 bytes stay zeroed from the
     // zero-initialised SysClkContext the overlay allocates).
     uint32_t componentTemps[3];
+    // HOC extension: temporary governor override packed value.
+    // bits 7:0 = CPU governor, bits 15:8 = GPU governor.
+    // (0=DoNotOverride, 1=Disabled, 2=Enabled per component)
+    // Zero when running against stock sys-clk.
+    uint32_t governorOverride;
 } SysClkContext;
 
 typedef struct

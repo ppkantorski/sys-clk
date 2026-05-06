@@ -35,13 +35,27 @@ class BaseMenuGui : public BaseGui
         tsl::elm::Element* baseUI() override;
         void refresh() override;
         virtual void listUI() = 0;
+        static void applyRefreshRateHz(int hz);
+        static int  getRefreshRateHz();
 
     private:
         char displayStrings[20][32];  // [0-16] existing, [17-19] CPU/GPU/MEM component temps
-        tsl::Color tempColors[3];     // Pre-computed temperature colors
-        bool isUsingEOS;
-        // When true (HOC only), the CPU/GPU/MEM freq row shows per-component
-        // die temperatures instead of target frequencies.  Toggled by Y button.
+        tsl::Color tempColors[6];     // Pre-computed temperature colors
+        // NOTE: isUsingEOS is inherited from BaseGui (public member).
+        //       Do NOT redeclare it here — a private shadow would never be initialised
+        //       and would cause EOS to be treated as stock throughout this class.
+        // Non-HOC SOCTHERM die temperatures (milliCelsius).
+        // Populated each refresh cycle via Soctherm::Read() when not in HOC mode.
+        uint32_t componentCPU_mC;
+        uint32_t componentGPU_mC;
+        uint32_t componentRAM_mC;
+        // Toggle state for the CPU/GPU/MEM top row:
+        //   HOC  mode: false = target freqs (default), true  = HOC IPC component temps
+        //   non-HOC:   true  = SOCTHERM temps (default),false = target freqs
+        // Pressing + flips the state in both modes.
         // Static so the preference survives navigating away and back.
         static bool m_showComponentTemps;
+        // Touch-tap detection: set true when a touch starts inside the data table rect.
+        // The toggle fires on release (End attribute) if the flag is still set.
+        bool m_touchStartedInRect;
 };

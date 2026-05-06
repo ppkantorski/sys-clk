@@ -3,6 +3,23 @@
 #include "base_menu_gui.h"
 #include <unordered_map>
 #include <string>
+#include <vector>
+
+// ── Refresh-Rate picker GUI ───────────────────────────────────────────────
+// Shown when the user taps the "Refresh Rate" item in Overlay Settings.
+class RefreshRateGui : public BaseMenuGui
+{
+public:
+    RefreshRateGui() {}
+    ~RefreshRateGui() override {}
+    void listUI() override;
+    // No periodic refresh needed for this static list
+    void refresh() override { BaseMenuGui::refresh(); }
+private:
+    static constexpr int RATES[] = {1, 2, 3, 5, 10};
+    static constexpr int RATE_COUNT = 5;
+    tsl::elm::ListItem* createRateItem(int hz, bool selected);
+};
 
 class MiscGui : public BaseMenuGui
 {
@@ -22,14 +39,21 @@ class MiscGui : public BaseMenuGui
         void setConfigValue(const std::string& iniKey, bool value);
         int getConfigIntValue(const std::string& iniKey, int defaultValue);
         void setConfigIntValue(const std::string& iniKey, int value);
+
+        // [overlay] section helpers (HOC: show_governing, refresh_rate_hz, …)
+        bool getOverlayConfigValue(const std::string& iniKey, bool defaultValue = false);
+        void setOverlayConfigValue(const std::string& iniKey, bool value);
         
         tsl::elm::ToggleListItem* enabledToggle;
-        tsl::elm::NamedStepTrackBar* gpuVminOffsetTrackbar;
+        tsl::elm::NamedStepTrackBar* autoGPUVminTrackbar  = nullptr; // EOS: 3-step Off/Official/Hijack
+        tsl::elm::NamedStepTrackBar* gpuVminOffsetTrackbar = nullptr;
+        tsl::elm::ListItem* refreshRateItem = nullptr;
 
         // Tracks the mV value we last wrote so refresh() doesn't clobber the
         // trackbar position with a stale file read between rapid user clicks.
         // Sentinel -999 means "not yet initialised" → first refresh always syncs.
-        int m_dvfsOffsetWritten = -999;
+        int m_dvfsOffsetWritten    = -999; // HOC: dvfs_offset
+        int m_eosVminOffsetWritten = -999; // EOS: gpu_vmin_offset
 
         u8 frameCounter = 60;
 };

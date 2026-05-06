@@ -17,9 +17,15 @@
 
 void MainGui::listUI()
 {
-    bool isUsingHOC = usingHOC();
+    // Both HOC and EOS share the same main menu structure:
+    //   - Enable toggle lives in Settings (MiscGui), not on the main page
+    //   - Global profile item is available
+    //   - Advanced / Settings section is shown
+    // Stock (neither HOC nor EOS) shows the Enable toggle on the main page
+    // and has no Global profile or Settings entry.
+    const bool isHOCLike = usingHOC() || usingEOS();
 
-    if (!isUsingHOC) {
+    if (!isHOCLike) {
         this->enabledToggle = new tsl::elm::ToggleListItem("Enable", false);
         enabledToggle->setStateChangedListener([this](bool state) {
             Result rc = sysclkIpcSetEnabled(state);
@@ -34,15 +40,15 @@ void MainGui::listUI()
         this->listElement->addItem(this->enabledToggle);
     }
 
-    this->listElement->addItem(new tsl::elm::CategoryHeader("Profiles"));
+    this->listElement->addItem(new tsl::elm::CategoryHeader("Edit Profile"));
 
-    tsl::elm::ListItem* appProfileItem = new tsl::elm::ListItem("Edit App Profile");
+    tsl::elm::ListItem* appProfileItem = new tsl::elm::ListItem("Active App");
     appProfileItem->setValue(ult::DROPDOWN_SYMBOL);
     appProfileItem->setClickListener([this, appProfileItem](u64 keys) {
         if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
         {
             tsl::shiftItemFocus(appProfileItem);
-            AppProfileGui::changeTo(this->context->applicationId);
+            AppProfileGui::changeTo(this->context->applicationId, this->context->profile);
             return true;
         }
 
@@ -50,14 +56,14 @@ void MainGui::listUI()
     });
     this->listElement->addItem(appProfileItem);
 
-    if (isUsingHOC) {
-        tsl::elm::ListItem* globalProfileItem = new tsl::elm::ListItem("Edit Global Profile");
+    if (isHOCLike) {
+        tsl::elm::ListItem* globalProfileItem = new tsl::elm::ListItem("Global");
         globalProfileItem->setValue(ult::DROPDOWN_SYMBOL);
         globalProfileItem->setClickListener([this, globalProfileItem](u64 keys) {
             if((keys & HidNpadButton_A) == HidNpadButton_A && this->context)
             {
                 tsl::shiftItemFocus(globalProfileItem);
-                AppProfileGui::changeTo(SYSCLK_GLOBAL_PROFILE_TID);
+                AppProfileGui::changeTo(SYSCLK_GLOBAL_PROFILE_TID, this->context->profile);
                 return true;
             }
 
@@ -66,9 +72,7 @@ void MainGui::listUI()
         this->listElement->addItem(globalProfileItem);
     }
 
-    this->listElement->addItem(new tsl::elm::CategoryHeader("Advanced"));
-
-    tsl::elm::ListItem* globalOverrideItem = new tsl::elm::ListItem("Temporary Override");
+    tsl::elm::ListItem* globalOverrideItem = new tsl::elm::ListItem("Temporary");
     globalOverrideItem->setValue(ult::DROPDOWN_SYMBOL);
     globalOverrideItem->setClickListener([this, globalOverrideItem](u64 keys) {
         if((keys & HidNpadButton_A) == HidNpadButton_A)
@@ -82,13 +86,8 @@ void MainGui::listUI()
     });
     this->listElement->addItem(globalOverrideItem);
 
-
-
-    
-
-    //this->listElement->addItem(new tsl::elm::CategoryHeader("Misc"));
-
-    if (isUsingHOC) {
+    if (isHOCLike) {
+        this->listElement->addItem(new tsl::elm::CategoryHeader("Advanced"));
 
         tsl::elm::ListItem* miscItem = new tsl::elm::ListItem("Settings");
         miscItem->setValue(ult::DROPDOWN_SYMBOL);
@@ -108,9 +107,9 @@ void MainGui::listUI()
 
 void MainGui::refresh()
 {
-    static bool isUsingHOC = usingHOC();
+    static bool isHOCLike = usingHOC() || usingEOS();
     BaseMenuGui::refresh();
-    if(!isUsingHOC && this->context) {
+    if(!isHOCLike && this->context) {
         this->enabledToggle->setState(this->context->enabled);
     }
 }
