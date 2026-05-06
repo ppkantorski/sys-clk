@@ -16,8 +16,8 @@ public:
     // No periodic refresh needed for this static list
     void refresh() override { BaseMenuGui::refresh(); }
 private:
-    static constexpr int RATES[] = {1, 2, 3, 5, 10, 15, 30, 60};
-    static constexpr int RATE_COUNT = 8;
+    static constexpr int RATES[] = {1, 2, 3, 5, 10};
+    static constexpr int RATE_COUNT = 5;
     tsl::elm::ListItem* createRateItem(int hz, bool selected);
 };
 
@@ -45,13 +45,15 @@ class MiscGui : public BaseMenuGui
         void setOverlayConfigValue(const std::string& iniKey, bool value);
         
         tsl::elm::ToggleListItem* enabledToggle;
-        tsl::elm::NamedStepTrackBar* gpuVminOffsetTrackbar;
+        tsl::elm::NamedStepTrackBar* autoGPUVminTrackbar  = nullptr; // EOS: 3-step Off/Official/Hijack
+        tsl::elm::NamedStepTrackBar* gpuVminOffsetTrackbar = nullptr;
         tsl::elm::ListItem* refreshRateItem = nullptr;
 
         // Tracks the mV value we last wrote so refresh() doesn't clobber the
         // trackbar position with a stale file read between rapid user clicks.
         // Sentinel -999 means "not yet initialised" → first refresh always syncs.
-        int m_dvfsOffsetWritten = -999;
+        int m_dvfsOffsetWritten    = -999; // HOC: dvfs_offset
+        int m_eosVminOffsetWritten = -999; // EOS: gpu_vmin_offset
 
         u8 frameCounter = 60;
 };

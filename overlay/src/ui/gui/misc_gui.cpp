@@ -48,15 +48,23 @@ void RefreshRateGui::listUI()
 
 MiscGui::MiscGui()
 {
-    
-    // Load current config values — keys must match HOC sysmodule's INI key names
+    // Load current config values — keys differ between EOS and HOC sysmodules
     configValues["uncapped_clocks"] = getConfigValue("uncapped_clocks");
-    configValues["ow_boost"]        = getConfigValue("ow_boost");           // HOC: ow_boost (was boost_gpu_override)
     configValues["auto_cpu_boost"]  = getConfigValue("auto_cpu_boost");
-    configValues["reversenx_sync"]  = getConfigValue("reversenx_sync");     // consistent key name
-    configValues["allow_governing"] = getConfigValue("allow_governing", false); // HOC: enable governor
-    configValues["dvfs_mode"]       = getConfigValue("dvfs_mode", true);  // sysmodule default is ON
-    // dvfs_offset handled separately as trackbars
+    configValues["reversenx_sync"]  = getConfigValue("reversenx_sync");
+
+    if (usingEOS()) {
+        // EOS sysmodule uses boost_gpu_override instead of ow_boost, and has no
+        // allow_governing or dvfs_mode.  The int keys (auto_gpu_vmin,
+        // gpu_vmin_offset) are handled separately as trackbars.
+        configValues["boost_gpu_override"] = getConfigValue("boost_gpu_override");
+    } else {
+        // HOC sysmodule keys
+        configValues["ow_boost"]        = getConfigValue("ow_boost");
+        configValues["allow_governing"] = getConfigValue("allow_governing", false);
+        configValues["dvfs_mode"]       = getConfigValue("dvfs_mode", true);
+        // dvfs_offset handled separately as a trackbar
+    }
 }
 
 MiscGui::~MiscGui()
@@ -512,8 +520,8 @@ static constexpr int numEntries = 25;
 
 void MiscGui::listUI()
 {
-    auto* moduleHeader = new tsl::elm::CategoryHeader("Module");
-    moduleHeader->setValue("Settings", tsl::sectionTextColor);
+    auto* moduleHeader = new tsl::elm::CategoryHeader("Module Settings");
+    //moduleHeader->setValue("Settings", tsl::sectionTextColor);
     this->listElement->addItem(moduleHeader);
 
     this->enabledToggle = new tsl::elm::ToggleListItem("Enable", false);
@@ -550,112 +558,117 @@ void MiscGui::listUI()
         }
     ), 12);
 
-    // Add the 4 boolean config toggles using INI keys
+    // Common toggles present in both HOC and EOS
     addConfigToggle("uncapped_clocks", "Uncapped Clocks");
-    addConfigToggle("ow_boost",        "Boost GPU Override");  // HOC key: ow_boost
-    addConfigToggle("auto_cpu_boost",  "Auto CPU Boost");
-    addConfigToggle("reversenx_sync",  "Sync ReverseNX");
 
-    // Allow Governing — HOC only.
-    // Dedicated toggle (not addConfigToggle) so we can track it separately.
-    // Writes allow_governing directly to [values] in config.ini.
-    // The sysmodule picks it up via Refresh() on the next polling tick.
-    if (usingHOC()) {
-        auto* govToggle = new tsl::elm::MiniToggleListItem("Allow Governing", configValues["allow_governing"]);
-        govToggle->setStateChangedListener([this](bool state) {
-            configValues["allow_governing"] = state;
-            setConfigValue("allow_governing", state);
-            this->lastContextUpdate = armGetSystemTick();
-        });
-        this->listElement->addItem(govToggle);
-        this->configToggles["allow_governing"] = govToggle;
+    // "Boost GPU Override" toggle — key differs between EOS and HOC sysmodules
+    if (usingEOS()) {
+        addConfigToggle("boost_gpu_override", "Boost GPU Override"); // EOS key
+    } else {
+        addConfigToggle("ow_boost", "Boost GPU Override");           // HOC key
     }
 
-    // Add GPU DVFS mode as a 2-step trackbar: HOC only has Disabled(0) and Hijack(1)
-    //this->autoGPUVminTrackbar = new tsl::elm::NamedStepTrackBar("", {
-    //    "Off",
-    //    "Hijack"
-    //}, true, "Auto GPU Vmin");
-    //
-    //// Ensure the value is within valid range (0-1)
-    //const int currentAutoGPUVminValue = std::max(0, std::min(1, getConfigIntValue("dvfs_mode", 1)));
-    //this->autoGPUVminTrackbar->setProgress(static_cast<u8>(currentAutoGPUVminValue));
-    //
-    //// Set up the value change listener to update the INI file (HOC key: dvfs_mode)
-    //this->autoGPUVminTrackbar->setValueChangedListener([this](u8 value) {
-    //    const int intValue = static_cast<int>(std::min(static_cast<u8>(1), value));
-    //    setConfigIntValue("dvfs_mode", intValue);
-    //    this->lastContextUpdate = armGetSystemTick();
-    //});
-    //
-    //this->listElement->addItem(this->autoGPUVminTrackbar);
+    addConfigToggle("auto_cpu_boost", "Auto CPU Boost");
+    addConfigToggle("reversenx_sync", "Sync ReverseNX");
 
+    if (usingEOS()) {
+        // ── EOS-specific section ─────────────────────────────────────────
+        // EOS has no allow_governing or dvfs_mode.
+        // It replaces dvfs_offset with auto_gpu_vmin (3-step) + gpu_vmin_offset.
 
-    addConfigToggle("dvfs_mode",  "GPU DVFS");
+        // Auto GPU Vmin: Off / Official Service / Hijack
+        this->autoGPUVminTrackbar = new tsl::elm::NamedStepTrackBar("", {
+            "Off",
+            "Official Service",
+            "Hijack"
+        }, true, "Auto GPU Vmin");
+        const int initAutoVmin = std::max(0, std::min(2, getConfigIntValue("auto_gpu_vmin", 1)));
+        this->autoGPUVminTrackbar->setProgress(static_cast<u8>(initAutoVmin));
+        this->autoGPUVminTrackbar->setValueChangedListener([this](u8 value) {
+            setConfigIntValue("auto_gpu_vmin", static_cast<int>(std::min(static_cast<u8>(2), value)));
+            this->lastContextUpdate = armGetSystemTick();
+        });
+        this->listElement->addItem(this->autoGPUVminTrackbar);
 
+        // GPU Vmin Offset — EOS stores as "100 - index*5":
+        //   index 0 → stored 100  (label "-100 mV"), index 20 → stored 0  (label "0 mV"),
+        //   index 24 → stored -20 (label "+20 mV")
+        this->gpuVminOffsetTrackbar = new tsl::elm::NamedStepTrackBar(
+            "", {
+                "-100 mV", "-95 mV", "-90 mV", "-85 mV", "-80 mV",
+                "-75 mV",  "-70 mV", "-65 mV", "-60 mV", "-55 mV",
+                "-50 mV",  "-45 mV", "-40 mV", "-35 mV", "-30 mV",
+                "-25 mV",  "-20 mV", "-15 mV", "-10 mV", "-5 mV",
+                "0 mV",    "+5 mV",  "+10 mV", "+15 mV", "+20 mV"
+            }, true, "GPU Vmin Offset");
 
-    // GPU Vmin Offset: -100 mV to +20 mV in 5 mV steps (25 entries)
-    // Stored in config as actual signed mV value: -100, -95, ..., 0, +5, ..., +20
-    // HOC clock_manager reads dvfs_offset and adds it directly to vmin (in mV)
-    this->gpuVminOffsetTrackbar = new tsl::elm::NamedStepTrackBar(
-        "", 
-        {
-            "-100 mV",
-            "-95 mV",
-            "-90 mV",
-            "-85 mV",
-            "-80 mV",
-            "-75 mV",
-            "-70 mV",
-            "-65 mV",
-            "-60 mV",
-            "-55 mV",
-            "-50 mV",
-            "-45 mV",
-            "-40 mV",
-            "-35 mV",
-            "-30 mV",
-            "-25 mV",
-            "-20 mV",
-            "-15 mV",
-            "-10 mV",
-            "-5 mV",
-            "0 mV",
-            "+5 mV",
-            "+10 mV",
-            "+15 mV",
-            "+20 mV"
-        },
-        true,
-        "GPU Vmin Offset"
-    );
+        const int eosStored = getConfigIntValue("gpu_vmin_offset", 0);
+        // Recover index: index = (100 - stored) / 5
+        const int eosIndex = std::max(0, std::min(numEntries - 1, (100 - eosStored) / 5));
+        this->gpuVminOffsetTrackbar->setProgress(static_cast<u8>(eosIndex));
+        this->m_eosVminOffsetWritten = eosStored;
 
-        
-    // Read stored mV value and convert to trackbar index.
-    // stored=-100 → index=0, stored=0 → index=20, stored=+20 → index=24
-    const int storedGPUVminOffsetValue = getConfigIntValue("dvfs_offset", 0);
-    const int trackbarIndex = std::max(0, std::min(numEntries-1, (storedGPUVminOffsetValue + 100) / 5));
-    this->gpuVminOffsetTrackbar->setProgress(static_cast<u8>(trackbarIndex));
-    // Seed the write-cache so refresh() never treats the init value as "external"
-    // and resets m_value out from under the user's first click.
-    this->m_dvfsOffsetWritten = storedGPUVminOffsetValue;
+        this->gpuVminOffsetTrackbar->setValueChangedListener([this](u8 value) {
+            // EOS formula: stored = 100 - (index * 5)
+            const int storedValue = 100 - (static_cast<int>(value) * 5);
+            this->m_eosVminOffsetWritten = storedValue;
+            setConfigIntValue("gpu_vmin_offset", storedValue);
+            this->lastContextUpdate = armGetSystemTick();
+        });
+        this->listElement->addItem(this->gpuVminOffsetTrackbar);
 
-    // Write back actual signed mV value so HOC sysmodule applies it correctly.
-    // index=0 → -100, index=20 → 0, index=24 → +20
-    this->gpuVminOffsetTrackbar->setValueChangedListener([this](u8 value) {
-        const int storedValue = (static_cast<int>(value) * 5) - 100;
-        // Update write-cache BEFORE the file write so that the 60-frame refresh
-        // cannot see a "changed" value and silently reset m_value mid-click-chain.
-        this->m_dvfsOffsetWritten = storedValue;
-        setConfigIntValue("dvfs_offset", storedValue);
-        this->lastContextUpdate = armGetSystemTick();
-    });
-    
-    this->listElement->addItem(this->gpuVminOffsetTrackbar);
+    } else {
+        // ── HOC-specific section ─────────────────────────────────────────
+
+        // Allow Governing — HOC only, not present on EOS.
+        if (usingHOC()) {
+            auto* govToggle = new tsl::elm::MiniToggleListItem("Allow Governing", configValues["allow_governing"]);
+            govToggle->setStateChangedListener([this](bool state) {
+                configValues["allow_governing"] = state;
+                setConfigValue("allow_governing", state);
+                this->lastContextUpdate = armGetSystemTick();
+            });
+            this->listElement->addItem(govToggle);
+            this->configToggles["allow_governing"] = govToggle;
+        }
+
+        // GPU DVFS toggle — HOC only
+        addConfigToggle("dvfs_mode", "GPU DVFS");
+
+        // GPU Vmin Offset: -100 mV to +20 mV in 5 mV steps (25 entries)
+        // HOC stores actual signed mV: index=0 → -100, index=20 → 0, index=24 → +20
+        this->gpuVminOffsetTrackbar = new tsl::elm::NamedStepTrackBar(
+            "", {
+                "-100 mV", "-95 mV", "-90 mV", "-85 mV", "-80 mV",
+                "-75 mV",  "-70 mV", "-65 mV", "-60 mV", "-55 mV",
+                "-50 mV",  "-45 mV", "-40 mV", "-35 mV", "-30 mV",
+                "-25 mV",  "-20 mV", "-15 mV", "-10 mV", "-5 mV",
+                "0 mV",    "+5 mV",  "+10 mV", "+15 mV", "+20 mV"
+            }, true, "GPU Vmin Offset");
+
+        // Read stored mV value and convert to trackbar index.
+        // stored=-100 → index=0, stored=0 → index=20, stored=+20 → index=24
+        const int storedGPUVminOffsetValue = getConfigIntValue("dvfs_offset", 0);
+        const int trackbarIndex = std::max(0, std::min(numEntries - 1, (storedGPUVminOffsetValue + 100) / 5));
+        this->gpuVminOffsetTrackbar->setProgress(static_cast<u8>(trackbarIndex));
+        // Seed the write-cache so refresh() never treats the init value as "external"
+        // and resets m_value out from under the user's first click.
+        this->m_dvfsOffsetWritten = storedGPUVminOffsetValue;
+
+        this->gpuVminOffsetTrackbar->setValueChangedListener([this](u8 value) {
+            const int storedValue = (static_cast<int>(value) * 5) - 100;
+            // Update write-cache BEFORE the file write so that the 60-frame refresh
+            // cannot see a "changed" value and silently reset m_value mid-click-chain.
+            this->m_dvfsOffsetWritten = storedValue;
+            setConfigIntValue("dvfs_offset", storedValue);
+            this->lastContextUpdate = armGetSystemTick();
+        });
+        this->listElement->addItem(this->gpuVminOffsetTrackbar);
+    }
 
     // ── Overlay Settings ─────────────────────────────────────────────────
-    auto* overlayHeader = new tsl::elm::CategoryHeader("Overlay");
-    overlayHeader->setValue("Settings", tsl::sectionTextColor);
+    auto* overlayHeader = new tsl::elm::CategoryHeader("Overlay Settings");
+    //overlayHeader->setValue("Settings", tsl::sectionTextColor);
     this->listElement->addItem(overlayHeader);
 
     // Refresh Rate dropdown item
@@ -700,23 +713,34 @@ void MiscGui::refresh() {
             this->refreshRateItem->setValue(valStr);
         }
         
-        // Update Auto GPU Vmin trackbar (HOC key: dvfs_mode, range 0-1)
-        //if (this->autoGPUVminTrackbar != nullptr) {
-        //    const int currentAutoGPUVminValue = std::max(0, std::min(1, getConfigIntValue("dvfs_mode", 1)));
-        //    this->autoGPUVminTrackbar->setProgress(static_cast<u8>(currentAutoGPUVminValue));
-        //}
-
-        // Update GPU Vmin Offset trackbar (HOC key: dvfs_offset, stored as signed mV)
-        if (this->gpuVminOffsetTrackbar != nullptr) {
-            const int storedGPUVminOffsetValue = getConfigIntValue("dvfs_offset", 0);
-            // Only reposition the trackbar when the file value differs from what
-            // we last wrote (i.e. an external process changed it).  Calling
-            // setProgress() unconditionally resets m_value between rapid clicks,
-            // causing the "snaps to a prior step" bug.
-            if (storedGPUVminOffsetValue != this->m_dvfsOffsetWritten) {
-                const int trackbarIndex = std::max(0, std::min(numEntries-1, (storedGPUVminOffsetValue + 100) / 5));
-                this->gpuVminOffsetTrackbar->setProgress(static_cast<u8>(trackbarIndex));
-                this->m_dvfsOffsetWritten = storedGPUVminOffsetValue;
+        // Update Auto GPU Vmin trackbar (EOS only: auto_gpu_vmin, range 0-2)
+        if (usingEOS()) {
+            if (this->autoGPUVminTrackbar != nullptr) {
+                const int v = std::max(0, std::min(2, getConfigIntValue("auto_gpu_vmin", 1)));
+                this->autoGPUVminTrackbar->setProgress(static_cast<u8>(v));
+            }
+            // EOS GPU Vmin Offset: key=gpu_vmin_offset, formula stored=100-(index*5)
+            if (this->gpuVminOffsetTrackbar != nullptr) {
+                const int eosStored = getConfigIntValue("gpu_vmin_offset", 0);
+                if (eosStored != this->m_eosVminOffsetWritten) {
+                    const int idx = std::max(0, std::min(numEntries - 1, (100 - eosStored) / 5));
+                    this->gpuVminOffsetTrackbar->setProgress(static_cast<u8>(idx));
+                    this->m_eosVminOffsetWritten = eosStored;
+                }
+            }
+        } else {
+            // HOC GPU Vmin Offset (key: dvfs_offset, stored as signed mV)
+            if (this->gpuVminOffsetTrackbar != nullptr) {
+                const int storedGPUVminOffsetValue = getConfigIntValue("dvfs_offset", 0);
+                // Only reposition the trackbar when the file value differs from what
+                // we last wrote (i.e. an external process changed it).  Calling
+                // setProgress() unconditionally resets m_value between rapid clicks,
+                // causing the "snaps to a prior step" bug.
+                if (storedGPUVminOffsetValue != this->m_dvfsOffsetWritten) {
+                    const int trackbarIndex = std::max(0, std::min(numEntries - 1, (storedGPUVminOffsetValue + 100) / 5));
+                    this->gpuVminOffsetTrackbar->setProgress(static_cast<u8>(trackbarIndex));
+                    this->m_dvfsOffsetWritten = storedGPUVminOffsetValue;
+                }
             }
         }
     }

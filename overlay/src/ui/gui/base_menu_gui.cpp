@@ -10,6 +10,7 @@
 
 #include "base_menu_gui.h"
 #include "fatal_gui.h"
+#include "../../soctherm.h"
 
 // Cache hardware model to avoid repeated syscalls
 static bool g_hardwareModelCached = false;
@@ -216,9 +217,10 @@ int BaseMenuGui::getRefreshRateHz() {
 }
 // ──────────────────────────────────────────────────────────────────────────
 
-BaseMenuGui::BaseMenuGui() : tempColors{tsl::Color(0), tsl::Color(0), tsl::Color(0)}
+BaseMenuGui::BaseMenuGui() : tempColors{tsl::Color(0), tsl::Color(0), tsl::Color(0), tsl::Color(0), tsl::Color(0), tsl::Color(0)}
 {
     isUsingHOC = usingHOC();
+    isUsingEOS = usingEOS(); // Must be set here — createUI() runs later
     //tsl::initializeThemeVars();
     this->context = nullptr;
     this->lastContextUpdate = 0;
@@ -226,6 +228,13 @@ BaseMenuGui::BaseMenuGui() : tempColors{tsl::Color(0), tsl::Color(0), tsl::Color
     
     // Initialize all voltages to zero once
     memset(&cpuVoltageUv, 0, sizeof(u32) * 5); // Zero all 5 voltage values at once
+    
+    // Initialize component temps to zero
+    componentCPU_mC = 0;
+    componentGPU_mC = 0;
+    componentRAM_mC = 0;
+    
+    m_touchStartedInRect = false;
     
     // Pre-cache hardware model during initialization
     IsMariko();
@@ -238,12 +247,23 @@ BaseMenuGui::BaseMenuGui() : tempColors{tsl::Color(0), tsl::Color(0), tsl::Color
     // already-loaded static value and don't re-read the file.
     static bool s_tempStateLoaded = false;
     if (!s_tempStateLoaded) {
-        s_tempStateLoaded    = true;
-        m_showComponentTemps = readOverlayBool(COMP_TEMPS_KEY, false);
+        s_tempStateLoaded = true;
+        if (isUsingHOC) {
+            // HOC: default = show target freqs, + toggles to HOC IPC component temps
+            m_showComponentTemps = readOverlayBool(COMP_TEMPS_KEY, false);
+        } else {
+            // Stock and EOS: default = show SOCTHERM die temps, + toggles to target freqs
+            m_showComponentTemps = readOverlayBool(COMP_TEMPS_KEY, true);
+        }
         // Load and apply the persisted refresh rate
         int hz = readOverlayInt(REFRESH_RATE_KEY, 1);
         if (hz <= 0) hz = 1;
         g_refreshIntervalNs = 1000000000UL / (u64)hz;
+    }
+
+    // HOC reads component temps via IPC; EOS and stock use SOCTHERM hardware directly.
+    if (!isUsingHOC) {
+        Soctherm::Initialize();
     }
 }
 
@@ -305,12 +325,14 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer) {
     renderer->drawString(labels[3], false, positions[3], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
     renderer->drawString(labels[4], false, positions[4], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
     
-    // Top freq row: target freqs normally; component die temps when HOC toggle active.
-    // displayStrings[2/3/4] = target freqs; displayStrings[17/18/19] = CPU/GPU/MEM temps.
-    const bool showTemps = isUsingHOC && m_showComponentTemps;
-    renderer->drawString(showTemps ? displayStrings[17] : displayStrings[2], false, dataPositions[0], y, SMALL_TEXT_SIZE, showTemps ? tempColors[0] : tsl::infoTextColor);  // CPU
-    renderer->drawString(showTemps ? displayStrings[18] : displayStrings[3], false, dataPositions[1], y, SMALL_TEXT_SIZE, showTemps ? tempColors[1] : tsl::infoTextColor);  // GPU
-    renderer->drawString(showTemps ? displayStrings[19] : displayStrings[4], false, dataPositions[2], y, SMALL_TEXT_SIZE, showTemps ? tempColors[2] : tsl::infoTextColor);  // MEM
+    // Top freq row:
+    //   HOC  mode: showTemps=true → HOC IPC component temps; false → target freqs (default)
+    //   non-HOC:   showTemps=true → SOCTHERM die temps (default); false → target freqs
+    // m_showComponentTemps carries the same meaning in both cases.
+    const bool showTemps = m_showComponentTemps;
+    renderer->drawString(showTemps ? displayStrings[17] : displayStrings[2], false, dataPositions[0], y, SMALL_TEXT_SIZE, showTemps ? tempColors[3] : tsl::infoTextColor);  // CPU
+    renderer->drawString(showTemps ? displayStrings[18] : displayStrings[3], false, dataPositions[1], y, SMALL_TEXT_SIZE, showTemps ? tempColors[4] : tsl::infoTextColor);  // GPU
+    renderer->drawString(showTemps ? displayStrings[19] : displayStrings[4], false, dataPositions[2], y, SMALL_TEXT_SIZE, showTemps ? tempColors[5] : tsl::infoTextColor);  // MEM
     
     y = 149; // Direct assignment (129 + 20)
     
@@ -385,9 +407,8 @@ void BaseMenuGui::refresh()
     }
 
     
-    //if (R_SUCCEEDED(sysclkCheck)) {
-    //    SysClkContext sysclkCTX;
     if (R_SUCCEEDED(sysclkIpcGetCurrentContext(this->context))) {
+        // realVolts is a HOC-exclusive IPC extension; EOS does not populate it.
         if (isUsingHOC) {
             cpuVoltageUv = this->context->realVolts[0]; 
             gpuVoltageUv = this->context->realVolts[1]; 
@@ -395,15 +416,15 @@ void BaseMenuGui::refresh()
             
             // Unpack realVolts[2] into separate EMC and VDD voltages
             const u32 packed = this->context->realVolts[2];
-            const float vdd2_mV_f = packed / 100000.0f;     // Float division preserves decimals
-            const u32 vddq_mV = (packed % 10000) / 10;      // VDDQ can stay integer
+            const float vdd2_mV_f = packed / 100000.0f;
+            const u32 vddq_mV = (packed % 10000) / 10;
             
-            vddVoltageUv = (u32)(vdd2_mV_f * 1000);  // Convert 1212.5 mV → 1212500 µV
-            emcVoltageUv = vddq_mV * 1000;           // Convert to µV
+            vddVoltageUv = (u32)(vdd2_mV_f * 1000);
+            emcVoltageUv = vddq_mV * 1000;
         }
     }
-    //}
 
+    // EOS and stock both read voltages from hardware regulator directly.
     if (!isUsingHOC) {
         // === ULTRA-FAST VOLTAGE READING ===
         // Pre-computed domain configuration based on hardware
@@ -524,22 +545,35 @@ void BaseMenuGui::refresh()
     sprintf(displayStrings[15], "%d mW", context->power[0]); // Now
     sprintf(displayStrings[16], "%d mW", context->power[1]); // Avg
 
-    // HOC per-component die temperatures for the freq-row toggle.
-    // Reuse the same gradient coloring as the SOC/PCB/Skin row so temps
-    // that are running hot stand out with the same red shift.
-    // These strings only display when m_showComponentTemps is true.
+    // HOC reads per-component die temps via IPC; EOS and stock use SOCTHERM.
     if (isUsingHOC) {
         u32 ct = context->componentTemps[0]; // CPU die
         sprintf(displayStrings[17], "%u.%u °C", ct / 1000U, (ct % 1000U) / 100U);
-        tempColors[0] = tsl::GradientColor(ct * 0.001f);
+        tempColors[3] = tsl::GradientColor(ct * 0.001f);
 
         ct = context->componentTemps[1]; // GPU die
         sprintf(displayStrings[18], "%u.%u °C", ct / 1000U, (ct % 1000U) / 100U);
-        tempColors[1] = tsl::GradientColor(ct * 0.001f);
+        tempColors[4] = tsl::GradientColor(ct * 0.001f);
 
         ct = context->componentTemps[2]; // MEM / PLLX
         sprintf(displayStrings[19], "%u.%u °C", ct / 1000U, (ct % 1000U) / 100U);
-        tempColors[2] = tsl::GradientColor(ct * 0.001f);
+        tempColors[5] = tsl::GradientColor(ct * 0.001f);
+    } else {
+        // Stock and EOS: read CPU/GPU/MEM die temps directly from SOCTHERM hardware.
+        Soctherm::Initialize();
+        Soctherm::Read(componentCPU_mC, componentGPU_mC, componentRAM_mC);
+
+        u32 ct = componentCPU_mC;
+        sprintf(displayStrings[17], "%u.%u °C", ct / 1000U, (ct % 1000U) / 100U);
+        tempColors[3] = tsl::GradientColor(ct * 0.001f);
+
+        ct = componentGPU_mC;
+        sprintf(displayStrings[18], "%u.%u °C", ct / 1000U, (ct % 1000U) / 100U);
+        tempColors[4] = tsl::GradientColor(ct * 0.001f);
+
+        ct = componentRAM_mC;
+        sprintf(displayStrings[19], "%u.%u °C", ct / 1000U, (ct % 1000U) / 100U);
+        tempColors[5] = tsl::GradientColor(ct * 0.001f);
     }
 }
 
@@ -548,15 +582,40 @@ bool BaseMenuGui::handleInput(u64 keysDown, u64 keysHeld,
                               HidAnalogStickState leftJoyStick,
                               HidAnalogStickState rightJoyStick)
 {
-    // Y button toggles between target-freq display and per-component die temp
-    // display in the CPU/GPU/MEM row.  Only meaningful when using HOC (which is
-    // the only sysmodule that supplies componentTemps[]).
-    if (isUsingHOC && (keysDown & KEY_PLUS)) {
+    // + button toggles between target-freq display and per-component die temp
+    // display in the CPU/GPU/MEM row.
+    //   HOC  mode: default = target freqs → toggle + to show HOC IPC component temps
+    //   non-HOC:   default = SOCTHERM die temps → toggle + to show target freqs
+    if (keysDown & KEY_PLUS) {
         m_showComponentTemps = !m_showComponentTemps;
         writeOverlayBool(COMP_TEMPS_KEY, m_showComponentTemps);
         triggerMoveFeedback();
         return true; // consumed — don't pass to list
     }
+
+    // Touch-tap on the main data table does the same toggle on release.
+    // The table rect is drawRoundedRect(14, 106, 420, 116) → x:[14,434] y:[106,222].
+    static constexpr u32 RECT_X = 14, RECT_Y = 106, RECT_W = 420, RECT_H = 116;
+    const bool touching = ult::stillTouching.load(std::memory_order_acquire);
+    const bool inRect   = touchPos.x >= RECT_X && touchPos.x <= RECT_X + RECT_W &&
+                          touchPos.y >= RECT_Y && touchPos.y <= RECT_Y + RECT_H;
+
+    if (touching && inRect && !m_touchStartedInRect) {
+        // First frame of a touch that began inside the rect.
+        m_touchStartedInRect = true;
+        triggerNavigationFeedback();
+    } else if (!touching && m_touchStartedInRect) {
+        // Finger lifted after starting inside the rect — trigger toggle.
+        m_showComponentTemps = !m_showComponentTemps;
+        writeOverlayBool(COMP_TEMPS_KEY, m_showComponentTemps);
+        triggerMoveFeedback();
+        m_touchStartedInRect = false;
+    } else if (!touching) {
+        // No touch active — clear flag (handles the case where touch
+        // started outside rect and we were never tracking it).
+        m_touchStartedInRect = false;
+    }
+
     return false; // let the list handle everything else
 }
 

@@ -185,7 +185,7 @@ void FreqChoiceGui::listUI()
     if (this->profile == SysClkProfile_EnumMax) {
         title = "Temporary " + ult::DIVIDER_SYMBOL + " Override";
     } else {
-        std::string scope = this->isGlobal ? "Global" : "App";
+        std::string scope = this->isGlobal ? "Global" : "Active App";
         title = scope + " " + ult::DIVIDER_SYMBOL + " " + sysclkFormatProfile(this->profile, true);
     }
 

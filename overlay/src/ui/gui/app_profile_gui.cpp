@@ -46,7 +46,7 @@ public:
         if (m_tid == SYSCLK_GLOBAL_PROFILE_TID)
             strncpy(idLabel, "Global", sizeof(idLabel));
         else
-            strncpy(idLabel, "App", sizeof(idLabel));
+            strncpy(idLabel, "Active App", sizeof(idLabel));
         header->setValue(std::string(idLabel) + " " + ult::DIVIDER_SYMBOL + " " +
                          sysclkFormatProfile(m_profile, true), tsl::sectionTextColor);
         this->listElement->addItem(header);
@@ -206,11 +206,11 @@ void AppProfileGui::addProfileUI(SysClkProfile profile)
     if (this->applicationId == SYSCLK_GLOBAL_PROFILE_TID)
         strncpy(idLabel, "Global", sizeof(idLabel));
     else
-        strncpy(idLabel, "App", sizeof(idLabel));
+        strncpy(idLabel, "Active App", sizeof(idLabel));
 
     auto* header = new tsl::elm::CategoryHeader(
         sysclkFormatProfile(profile, true) + std::string(" ") +
-        ult::DIVIDER_SYMBOL + "  Reset");
+        ult::DIVIDER_SYMBOL + "  Reset");
     header->setValue(idLabel, tsl::sectionTextColor);
     this->listElement->addItem(header);
 

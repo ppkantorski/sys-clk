@@ -39,34 +39,27 @@ std::string getVersionString() {
 
 bool usingHOC() {
     const std::string versionString = getVersionString();
-
-    // Detect HOC sysmodule (version string ends with "-hoc") or legacy HOC builds
-    return versionString.find("hoc") != std::string::npos ||
-           versionString.find("eos") != std::string::npos;
+    // Detect HOC sysmodule (version string ends with "-hoc")
+    return versionString.find("hoc") != std::string::npos;
 }
 
 bool usingEOS() {
     const std::string versionString = getVersionString();
-
-    // Detect EOS sysmodule (version string ends with "-eos") or legacy HOC builds
+    // Detect EOS sysmodule (version string ends with "-eos")
     return versionString.find("eos") != std::string::npos;
 }
 
 void BaseGui::preDraw(tsl::gfx::Renderer* renderer)
 {
-    //static bool runOnce = true;
-    //if (runOnce) {
-    //    tsl::initializeThemeVars();
-    //    runOnce = false;
-    //}
     renderer->drawBitmap(LOGO_X, LOGO_Y, LOGO_WIDTH, LOGO_HEIGHT, logo_rgba_bin);
     renderer->drawString("overlay", false, LOGO_LABEL_X, LOGO_LABEL_Y, LOGO_LABEL_FONT_SIZE, TEXT_COLOR);
     renderer->drawString(TARGET_VERSION, false, VERSION_X, VERSION_Y, VERSION_FONT_SIZE, tsl::bannerVersionTextColor);
-    if (isUsingHOC) {
-        renderer->drawString("HOC mode", false, VERSION_X+86, VERSION_Y, VERSION_FONT_SIZE, tsl::warningTextColor);
-    }
-    else if (isUsingEOS) {
+    // usingHOC() and usingEOS() are now mutually exclusive, so order doesn't matter.
+    if (isUsingEOS) {
         renderer->drawString("EOS mode", false, VERSION_X+86, VERSION_Y, VERSION_FONT_SIZE, tsl::warningTextColor);
+    }
+    else if (isUsingHOC) {
+        renderer->drawString("HOC mode", false, VERSION_X+86, VERSION_Y, VERSION_FONT_SIZE, 0xF0F0);
     }
 }
 
