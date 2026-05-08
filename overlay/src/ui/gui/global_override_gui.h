@@ -26,6 +26,9 @@ class GlobalOverrideGui : public BaseMenuGui
         // Tracks the temp governor packed value across submenu visits.
         // Initialized to 0 (Do not override) when this screen is created.
         std::uint32_t m_tempGovernorPacked = 0;
+        // Governor dropdown list item — kept so its label can be updated when
+        // the user changes a bar inside GovernorOverrideSubMenuGui.
+        tsl::elm::ListItem* m_governorItem = nullptr;
 
         void openFreqChoiceGui(SysClkModule module);
         void addModuleListItem(SysClkModule module);

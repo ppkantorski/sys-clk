@@ -10,15 +10,19 @@
 class RefreshRateGui : public BaseMenuGui
 {
 public:
-    RefreshRateGui() {}
+    // onSelected fires immediately when the user picks a rate, before goBack(),
+    // so the caller can update its list-item label without waiting for refresh().
+    RefreshRateGui(std::function<void(int)> onSelected = nullptr)
+        : m_onSelected(std::move(onSelected)) {}
     ~RefreshRateGui() override {}
     void listUI() override;
     // No periodic refresh needed for this static list
     void refresh() override { BaseMenuGui::refresh(); }
 private:
-    static constexpr int RATES[] = {1, 2, 3, 5, 10};
-    static constexpr int RATE_COUNT = 5;
+    static constexpr int RATES[] = {1, 2, 3, 5, 10, 30, 60};
+    static constexpr int RATE_COUNT = 7;
     tsl::elm::ListItem* createRateItem(int hz, bool selected);
+    std::function<void(int)> m_onSelected;
 };
 
 class MiscGui : public BaseMenuGui
@@ -47,6 +51,7 @@ class MiscGui : public BaseMenuGui
         tsl::elm::ToggleListItem* enabledToggle;
         tsl::elm::NamedStepTrackBar* autoGPUVminTrackbar  = nullptr; // EOS: 3-step Off/Official/Hijack
         tsl::elm::NamedStepTrackBar* gpuVminOffsetTrackbar = nullptr;
+        tsl::elm::NamedStepTrackBar* cpuGovMinTrackbar     = nullptr; // HOC: cpu_gov_min_freq
         tsl::elm::ListItem* refreshRateItem = nullptr;
 
         // Tracks the mV value we last wrote so refresh() doesn't clobber the
@@ -54,6 +59,7 @@ class MiscGui : public BaseMenuGui
         // Sentinel -999 means "not yet initialised" → first refresh always syncs.
         int m_dvfsOffsetWritten    = -999; // HOC: dvfs_offset
         int m_eosVminOffsetWritten = -999; // EOS: gpu_vmin_offset
+        int m_cpuGovMinWritten     = -1;   // HOC: cpu_gov_min_freq (sentinel -1 = uninitialised)
 
         u8 frameCounter = 60;
 };

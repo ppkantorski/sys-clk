@@ -137,8 +137,7 @@ tsl::elm::ListItem* FreqChoiceGui::createFreqListItem(std::uint32_t hz,
     if (selected)
         rightText = "\uE14B";
 
-    tsl::elm::ListItem* listItem =
-        new tsl::elm::ListItem(formatListFreqHz(hz), rightText, false);
+    tsl::elm::ListItem* listItem = new tsl::elm::ListItem(formatListFreqHz(hz), rightText, true);
 
     // Apply governing safety coloring (text + value), matching HOC exactly
     if (this->showGoverning && hz != 0) {
@@ -148,12 +147,12 @@ tsl::elm::ListItem* FreqChoiceGui::createFreqListItem(std::uint32_t hz,
             listItem->setValueColor(tsl::warningTextColor);
             break;
         case 2:  // Danger — bright red
-            listItem->setTextColor(tsl::Color(255, 0, 0, 255));
-            listItem->setValueColor(tsl::Color(255, 0, 0, 255));
+            listItem->setTextColor(0xF00F);
+            listItem->setValueColor(0xF00F);
             break;
         default:  // Safe — standard white
-            listItem->setTextColor(tsl::Color(255, 255, 255, 255));
-            listItem->setValueColor(tsl::Color(255, 255, 255, 255));
+            listItem->setTextColor(0xFFFF);
+            listItem->setValueColor(0xFFFF);
             break;
         }
     }

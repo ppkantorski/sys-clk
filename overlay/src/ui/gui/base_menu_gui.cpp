@@ -217,7 +217,7 @@ int BaseMenuGui::getRefreshRateHz() {
 }
 // ──────────────────────────────────────────────────────────────────────────
 
-BaseMenuGui::BaseMenuGui() : tempColors{tsl::Color(0), tsl::Color(0), tsl::Color(0), tsl::Color(0), tsl::Color(0), tsl::Color(0)}
+BaseMenuGui::BaseMenuGui()
 {
     isUsingHOC = usingHOC();
     isUsingEOS = usingEOS(); // Must be set here — createUI() runs later
@@ -390,6 +390,7 @@ Result sysclkCheck = 1;
 // Persist the freq/temp toggle across GUI re-creation (navigation away and back).
 bool BaseMenuGui::m_showComponentTemps = false;
 
+
 // Optimized refresh - now does all the string formatting once per second
 void BaseMenuGui::refresh()
 {
@@ -549,15 +550,15 @@ void BaseMenuGui::refresh()
     if (isUsingHOC) {
         u32 ct = context->componentTemps[0]; // CPU die
         sprintf(displayStrings[17], "%u.%u °C", ct / 1000U, (ct % 1000U) / 100U);
-        tempColors[3] = tsl::GradientColor(ct * 0.001f);
+        tempColors[3] = tsl::GradientColor(ct * 0.001f, tsl::DEFAULT_TEMP_RANGE_HIGH);
 
         ct = context->componentTemps[1]; // GPU die
         sprintf(displayStrings[18], "%u.%u °C", ct / 1000U, (ct % 1000U) / 100U);
-        tempColors[4] = tsl::GradientColor(ct * 0.001f);
+        tempColors[4] = tsl::GradientColor(ct * 0.001f, tsl::DEFAULT_TEMP_RANGE_HIGH);
 
         ct = context->componentTemps[2]; // MEM / PLLX
         sprintf(displayStrings[19], "%u.%u °C", ct / 1000U, (ct % 1000U) / 100U);
-        tempColors[5] = tsl::GradientColor(ct * 0.001f);
+        tempColors[5] = tsl::GradientColor(ct * 0.001f, tsl::DEFAULT_TEMP_RANGE_HIGH);
     } else {
         // Stock and EOS: read CPU/GPU/MEM die temps directly from SOCTHERM hardware.
         Soctherm::Initialize();
@@ -565,15 +566,15 @@ void BaseMenuGui::refresh()
 
         u32 ct = componentCPU_mC;
         sprintf(displayStrings[17], "%u.%u °C", ct / 1000U, (ct % 1000U) / 100U);
-        tempColors[3] = tsl::GradientColor(ct * 0.001f);
+        tempColors[3] = tsl::GradientColor(ct * 0.001f, tsl::DEFAULT_TEMP_RANGE_HIGH);
 
         ct = componentGPU_mC;
         sprintf(displayStrings[18], "%u.%u °C", ct / 1000U, (ct % 1000U) / 100U);
-        tempColors[4] = tsl::GradientColor(ct * 0.001f);
+        tempColors[4] = tsl::GradientColor(ct * 0.001f, tsl::DEFAULT_TEMP_RANGE_HIGH);
 
         ct = componentRAM_mC;
         sprintf(displayStrings[19], "%u.%u °C", ct / 1000U, (ct % 1000U) / 100U);
-        tempColors[5] = tsl::GradientColor(ct * 0.001f);
+        tempColors[5] = tsl::GradientColor(ct * 0.001f, tsl::DEFAULT_TEMP_RANGE_HIGH);
     }
 }
 

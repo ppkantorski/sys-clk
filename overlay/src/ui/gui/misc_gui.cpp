@@ -19,6 +19,9 @@ tsl::elm::ListItem* RefreshRateGui::createRateItem(int hz, bool selected)
     item->setClickListener([this, hz](u64 keys) -> bool {
         if ((keys & KEY_A) == KEY_A) {
             BaseMenuGui::applyRefreshRateHz(hz);
+            // Notify the caller (MiscGui) immediately so its label updates
+            // without waiting up to 60 frames for the periodic refresh().
+            if (this->m_onSelected) this->m_onSelected(hz);
             tsl::goBack();
             return true;
         }
@@ -50,10 +53,10 @@ MiscGui::MiscGui()
 {
     // Load current config values — keys differ between EOS and HOC sysmodules
     configValues["uncapped_clocks"] = getConfigValue("uncapped_clocks");
-    configValues["auto_cpu_boost"]  = getConfigValue("auto_cpu_boost");
     configValues["reversenx_sync"]  = getConfigValue("reversenx_sync");
 
     if (usingEOS()) {
+        configValues["auto_cpu_boost"]  = getConfigValue("auto_cpu_boost");
         // EOS sysmodule uses boost_gpu_override instead of ow_boost, and has no
         // allow_governing or dvfs_mode.  The int keys (auto_gpu_vmin,
         // gpu_vmin_offset) are handled separately as trackbars.
@@ -564,11 +567,11 @@ void MiscGui::listUI()
     // "Boost GPU Override" toggle — key differs between EOS and HOC sysmodules
     if (usingEOS()) {
         addConfigToggle("boost_gpu_override", "Boost GPU Override"); // EOS key
+        addConfigToggle("auto_cpu_boost", "Auto CPU Boost");
     } else {
         addConfigToggle("ow_boost", "Boost GPU Override");           // HOC key
     }
 
-    addConfigToggle("auto_cpu_boost", "Auto CPU Boost");
     addConfigToggle("reversenx_sync", "Sync ReverseNX");
 
     if (usingEOS()) {
@@ -618,19 +621,6 @@ void MiscGui::listUI()
         this->listElement->addItem(this->gpuVminOffsetTrackbar);
 
     } else {
-        // ── HOC-specific section ─────────────────────────────────────────
-
-        // Allow Governing — HOC only, not present on EOS.
-        if (usingHOC()) {
-            auto* govToggle = new tsl::elm::MiniToggleListItem("Allow Governing", configValues["allow_governing"]);
-            govToggle->setStateChangedListener([this](bool state) {
-                configValues["allow_governing"] = state;
-                setConfigValue("allow_governing", state);
-                this->lastContextUpdate = armGetSystemTick();
-            });
-            this->listElement->addItem(govToggle);
-            this->configToggles["allow_governing"] = govToggle;
-        }
 
         // GPU DVFS toggle — HOC only
         addConfigToggle("dvfs_mode", "GPU DVFS");
@@ -664,6 +654,42 @@ void MiscGui::listUI()
             this->lastContextUpdate = armGetSystemTick();
         });
         this->listElement->addItem(this->gpuVminOffsetTrackbar);
+
+
+        // ── HOC-specific section ─────────────────────────────────────────
+        if (usingHOC()) {
+            // Allow Governing — HOC only, not present on EOS.
+            auto* govToggle = new tsl::elm::MiniToggleListItem("Allow Governing", configValues["allow_governing"]);
+            govToggle->setStateChangedListener([this](bool state) {
+                configValues["allow_governing"] = state;
+                setConfigValue("allow_governing", state);
+                this->lastContextUpdate = armGetSystemTick();
+            });
+            this->listElement->addItem(govToggle);
+            this->configToggles["allow_governing"] = govToggle;
+
+            // CPU Governor Minimum Frequency — HOC only.
+            // Values mirror hoc-clk: 510 → 1020 MHz in 102 MHz steps.
+            // Stored in config.ini as raw Hz (e.g. 612000000).
+            this->cpuGovMinTrackbar = new tsl::elm::NamedStepTrackBar(
+                "", { "510 MHz", "612 MHz", "714 MHz", "816 MHz", "918 MHz", "1020 MHz" },
+                true, "CPU Gov Min Freq"
+            );
+
+            const int storedCpuGovMin = getConfigIntValue("cpu_gov_min_freq", 612000000);
+            const int cpuGovMinIndex  = std::max(0, std::min(5,
+                (storedCpuGovMin / 1000000 - 510) / 102));
+            this->cpuGovMinTrackbar->setProgress(static_cast<u8>(cpuGovMinIndex));
+            this->m_cpuGovMinWritten = storedCpuGovMin;
+
+            this->cpuGovMinTrackbar->setValueChangedListener([this](u8 value) {
+                const int hz = (static_cast<int>(value) * 102 + 510) * 1000000;
+                this->m_cpuGovMinWritten = hz;
+                setConfigIntValue("cpu_gov_min_freq", hz);
+                this->lastContextUpdate = armGetSystemTick();
+            });
+            this->listElement->addItem(this->cpuGovMinTrackbar);
+        }
     }
 
     // ── Overlay Settings ─────────────────────────────────────────────────
@@ -682,7 +708,14 @@ void MiscGui::listUI()
     this->refreshRateItem->setClickListener([this](u64 keys) -> bool {
         if ((keys & HidNpadButton_A) == HidNpadButton_A) {
             tsl::shiftItemFocus(this->refreshRateItem);
-            tsl::changeTo<RefreshRateGui>();
+            // Capture the item pointer so the callback can update its label
+            // the instant the user makes a selection — no waiting for refresh().
+            auto* rateItem = this->refreshRateItem;
+            tsl::changeTo<RefreshRateGui>([rateItem](int hz) {
+                char valStr[16];
+                snprintf(valStr, sizeof(valStr), "%d Hz", hz);
+                rateItem->setValue(valStr);
+            });
             return true;
         }
         return false;
@@ -740,6 +773,17 @@ void MiscGui::refresh() {
                     const int trackbarIndex = std::max(0, std::min(numEntries - 1, (storedGPUVminOffsetValue + 100) / 5));
                     this->gpuVminOffsetTrackbar->setProgress(static_cast<u8>(trackbarIndex));
                     this->m_dvfsOffsetWritten = storedGPUVminOffsetValue;
+                }
+            }
+
+            // HOC CPU Governor Minimum Frequency (key: cpu_gov_min_freq, stored as Hz)
+            if (this->cpuGovMinTrackbar != nullptr) {
+                const int storedCpuGovMin = getConfigIntValue("cpu_gov_min_freq", 612000000);
+                if (storedCpuGovMin != this->m_cpuGovMinWritten) {
+                    const int idx = std::max(0, std::min(5,
+                        (storedCpuGovMin / 1000000 - 510) / 102));
+                    this->cpuGovMinTrackbar->setProgress(static_cast<u8>(idx));
+                    this->m_cpuGovMinWritten = storedCpuGovMin;
                 }
             }
         }

@@ -18,6 +18,28 @@
 // HocClkModule_Governor = 3 — send via sysclkIpcSetOverride to set temporary governor.
 #define GOVERNOR_MODULE_INDEX 3
 
+// Returns the display string for the Governor list-item value.
+// Mirrors the logic in app_profile_gui.cpp's governorPackedLabel().
+static std::string governorPackedLabel(uint32_t packed)
+{
+    u8 cpu = (packed >> 0) & 0xFF;
+    u8 gpu = (packed >> 8) & 0xFF;
+    if (cpu > 2) cpu = 0;
+    if (gpu > 2) gpu = 0;
+
+    if (cpu == 0 && gpu == 0)
+        return ult::DROPDOWN_SYMBOL;
+
+    auto stateName = [](u8 v) -> const char* {
+        return v == 2 ? "Enabled" : "Disabled";
+    };
+
+    if (cpu == 0) return stateName(gpu);
+    if (gpu == 0) return stateName(cpu);
+    // Both set: "CPU_STATE ─ GPU_STATE"
+    return std::string(stateName(cpu)) + ult::DIVIDER_SYMBOL + stateName(gpu);
+}
+
 // ── GovernorOverrideSubMenuGui ────────────────────────────────────────────
 // Initialized with the parent GlobalOverrideGui's current packed value.
 // On change, calls setter() to update the parent's member and the sysmodule.
@@ -158,7 +180,8 @@ void GlobalOverrideGui::listUI()
     // Governor override — HOC mode + Allow Governing only
     if (usingHOC() && FreqChoiceGui::readShowGoverning()) {
         auto* item = new tsl::elm::ListItem("Governor");
-        item->setValue(ult::DROPDOWN_SYMBOL);
+        this->m_governorItem = item;
+        item->setValue(governorPackedLabel(this->m_tempGovernorPacked));
         item->setClickListener([this, item](u64 keys) -> bool {
             if ((keys & HidNpadButton_A) == HidNpadButton_A) {
                 tsl::shiftItemFocus(item);
@@ -166,12 +189,31 @@ void GlobalOverrideGui::listUI()
                 // same way CPU/GPU/MEM overrides are read back.
                 if (this->context)
                     this->m_tempGovernorPacked = this->context->governorOverride;
+                // Sync label before entering submenu
+                item->setValue(governorPackedLabel(this->m_tempGovernorPacked));
                 tsl::changeTo<GovernorOverrideSubMenuGui>(
                     this->m_tempGovernorPacked,
                     [this](uint32_t packed) {
                         this->m_tempGovernorPacked = packed;
                         sysclkIpcSetOverride((SysClkModule)GOVERNOR_MODULE_INDEX, packed);
+                        // Update the parent item label immediately on every bar change
+                        if (this->m_governorItem)
+                            this->m_governorItem->setValue(governorPackedLabel(packed));
                     });
+                return true;
+            }
+            else if ((keys & KEY_Y) == KEY_Y) {
+                // Reset both CPU and GPU governor overrides to "Do not override"
+                Result rc = sysclkIpcSetOverride((SysClkModule)GOVERNOR_MODULE_INDEX, 0);
+                if (R_FAILED(rc)) {
+                    FatalGui::openWithResultCode("sysclkIpcSetOverride", rc);
+                    return false;
+                }
+                this->lastContextUpdate = armGetSystemTick();
+                this->m_tempGovernorPacked = 0;
+                item->setValue(governorPackedLabel(0));
+                item->triggerClickAnimation();
+                triggerSettingsFeedback();
                 return true;
             }
             return false;
@@ -192,6 +234,15 @@ void GlobalOverrideGui::refresh()
                 this->listItems[m]->setValue(formatListFreqHz(this->context->overrideFreqs[m]));
                 this->listHz[m] = this->context->overrideFreqs[m];
             }
+        }
+
+        // Keep the governor item label in sync with context — same guard as the
+        // freq items above so we only redraw when the value actually changed.
+        if (this->m_governorItem != nullptr &&
+            this->context->governorOverride != this->m_tempGovernorPacked)
+        {
+            this->m_tempGovernorPacked = this->context->governorOverride;
+            this->m_governorItem->setValue(governorPackedLabel(this->m_tempGovernorPacked));
         }
     }
 }

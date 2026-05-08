@@ -31,14 +31,46 @@
 // exposed through the stock sys-clk IPC config value list.
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Returns the display string for the Governor list-item value based on the
+// packed CPU+GPU governor word.  Mirrors the submenu option indices:
+//   0 = Do not override  → DROPDOWN_SYMBOL
+//   1 = Disabled         → "Disabled"
+//   2 = Enabled          → "Enabled"
+// If one axis is Enabled and the other is Disabled, "Enabled" wins because
+// it is the more active state.  Both-zero → just the dropdown arrow.
+// ---------------------------------------------------------------------------
+static std::string governorPackedLabel(uint32_t packed)
+{
+    u8 cpu = (packed >> 0) & 0xFF;
+    u8 gpu = (packed >> 8) & 0xFF;
+    if (cpu > 2) cpu = 0;
+    if (gpu > 2) gpu = 0;
+
+    if (cpu == 0 && gpu == 0)
+        return ult::DROPDOWN_SYMBOL;
+
+    auto stateName = [](u8 v) -> const char* {
+        return v == 2 ? "Enabled" : "Disabled";
+    };
+
+    if (cpu == 0) return stateName(gpu);
+    if (gpu == 0) return stateName(cpu);
+    // Both set: "CPU_STATE ─ GPU_STATE"
+    return std::string(stateName(cpu)) + ult::DIVIDER_SYMBOL + stateName(gpu);
+}
+
 class GovernorProfileSubMenuGui : public BaseMenuGui {
     uint64_t               m_tid;
     SysClkProfileGovernorList* m_governors;  // pointer into AppProfileGui::m_governors
     SysClkProfile          m_profile;
+    std::function<void()>  m_onChanged;      // fires whenever a bar value changes
 
 public:
-    GovernorProfileSubMenuGui(uint64_t tid, SysClkProfileGovernorList* governors, SysClkProfile profile)
-        : m_tid(tid), m_governors(governors), m_profile(profile) {}
+    GovernorProfileSubMenuGui(uint64_t tid, SysClkProfileGovernorList* governors,
+                              SysClkProfile profile, std::function<void()> onChanged = nullptr)
+        : m_tid(tid), m_governors(governors), m_profile(profile)
+        , m_onChanged(std::move(onChanged)) {}
 
     void listUI() override {
         auto* header = new tsl::elm::CategoryHeader("Governor");
@@ -73,12 +105,14 @@ public:
             SysClkProfileGovernorList* gov = m_governors;
             SysClkProfile prof = m_profile;
 
-            bar->setValueChangedListener([tid, gov, prof, shift](u8 value) {
+            bar->setValueChangedListener([this, tid, gov, prof, shift](u8 value) {
                 // Update in-place (same pattern as hoc-clk's profileList->mhzMap[prof][Governor])
                 uint32_t& packed = gov->packed[prof];
                 packed = (packed & ~(0xFFu << shift)) | ((uint32_t)value << shift);
                 // Push to sysmodule via IPC — no file writes needed
                 sysclkIpcSetProfileGovernors(tid, gov);
+                // Notify parent item so its label updates immediately
+                if (this->m_onChanged) this->m_onChanged();
             });
 
             this->listElement->addItem(bar);
@@ -186,13 +220,34 @@ void AppProfileGui::addGovernorSection(SysClkProfile profile)
         return;
 
     auto* item = new tsl::elm::ListItem("Governor");
-    item->setValue(ult::DROPDOWN_SYMBOL);
+    item->setValue(governorPackedLabel(this->m_governors.packed[profile]));
     item->setClickListener([this, profile, item](u64 keys) -> bool {
         if ((keys & HidNpadButton_A) == HidNpadButton_A) {
             tsl::shiftItemFocus(item);
             tsl::changeTo<GovernorProfileSubMenuGui>(
-                this->applicationId, &this->m_governors, profile
+                this->applicationId, &this->m_governors, profile,
+                // Callback: fires on every bar-change inside the submenu so the
+                // parent item label stays in sync without waiting for refresh().
+                [this, profile, item]() {
+                    item->setValue(governorPackedLabel(this->m_governors.packed[profile]));
+                }
             );
+            return true;
+        }
+        else if ((keys & KEY_Y) == KEY_Y) {
+            // Reset both CPU and GPU governors for this profile to "Do not override"
+            this->m_governors.packed[profile] = 0;
+            item->setValue(governorPackedLabel(0));
+
+            Result rc = sysclkIpcSetProfileGovernors(this->applicationId, &this->m_governors);
+            if (R_FAILED(rc)) {
+                FatalGui::openWithResultCode("sysclkIpcSetProfileGovernors", rc);
+                triggerSettingsFeedback();
+                item->triggerClickAnimation();
+                return false;
+            }
+            triggerSettingsFeedback();
+            item->triggerClickAnimation();
             return true;
         }
         return false;
