@@ -125,17 +125,37 @@ public:
 // ---------------------------------------------------------------------------
 
 AppProfileGui::AppProfileGui(std::uint64_t applicationId, SysClkTitleProfileList* profileList,
-                             SysClkProfileGovernorList governors, SysClkProfile initialProfile)
+                             SysClkProfileGovernorList governors, SysClkProfile initialProfile,
+                             std::function<void(bool)> onStateChanged)
 {
     this->applicationId  = applicationId;
     this->profileList    = profileList;
     this->m_governors    = governors;
     this->m_initialProfile = initialProfile;
+    this->m_onStateChanged = std::move(onStateChanged);
 }
 
 AppProfileGui::~AppProfileGui()
 {
     delete this->profileList;
+}
+
+// Returns true when at least one clock or (HOC+governing only) governor
+// value for the ACTIVE PROFILE differs from "Do not override".
+// Only the profile that was current when this screen was opened is checked —
+// changes to other profiles do not affect the Edit Profile symbol.
+bool AppProfileGui::hasAnyNonZero() const
+{
+    for (int m = 0; m < SysClkModule_EnumMax; m++)
+        if (this->profileList->mhzMap[m_initialProfile][m])
+            return true;
+
+    // Governors only count in HOC mode when Allow Governing is enabled.
+    if (usingHOC() && FreqChoiceGui::readShowGoverning())
+        if (this->m_governors.packed[m_initialProfile])
+            return true;
+
+    return false;
 }
 
 void AppProfileGui::openFreqChoiceGui(tsl::elm::ListItem* listItem,
@@ -172,6 +192,8 @@ void AppProfileGui::openFreqChoiceGui(tsl::elm::ListItem* listItem,
                 FatalGui::openWithResultCode("sysclkIpcSetProfiles", rc);
                 return false;
             }
+            if (this->m_onStateChanged)
+                this->m_onStateChanged(this->hasAnyNonZero());
             return true;
         },
         govLabels
@@ -205,6 +227,8 @@ void AppProfileGui::addModuleListItem(SysClkProfile profile, SysClkModule module
                 listItem->triggerClickAnimation();
                 return false;
             }
+            if (this->m_onStateChanged)
+                this->m_onStateChanged(this->hasAnyNonZero());
             triggerSettingsFeedback();
             listItem->triggerClickAnimation();
             return true;
@@ -228,8 +252,11 @@ void AppProfileGui::addGovernorSection(SysClkProfile profile)
                 this->applicationId, &this->m_governors, profile,
                 // Callback: fires on every bar-change inside the submenu so the
                 // parent item label stays in sync without waiting for refresh().
+                // Also notifies MainGui to update the Edit Profile symbol.
                 [this, profile, item]() {
                     item->setValue(governorPackedLabel(this->m_governors.packed[profile]));
+                    if (this->m_onStateChanged)
+                        this->m_onStateChanged(this->hasAnyNonZero());
                 }
             );
             return true;
@@ -246,6 +273,8 @@ void AppProfileGui::addGovernorSection(SysClkProfile profile)
                 item->triggerClickAnimation();
                 return false;
             }
+            if (this->m_onStateChanged)
+                this->m_onStateChanged(this->hasAnyNonZero());
             triggerSettingsFeedback();
             item->triggerClickAnimation();
             return true;
@@ -289,7 +318,8 @@ void AppProfileGui::listUI()
     }
 }
 
-void AppProfileGui::changeTo(std::uint64_t applicationId, SysClkProfile initialProfile)
+void AppProfileGui::changeTo(std::uint64_t applicationId, SysClkProfile initialProfile,
+                             std::function<void(bool)> onStateChanged)
 {
     SysClkTitleProfileList* profileList = new SysClkTitleProfileList;
     Result rc = sysclkIpcGetProfiles(applicationId, profileList);
@@ -308,7 +338,8 @@ void AppProfileGui::changeTo(std::uint64_t applicationId, SysClkProfile initialP
         // Ignore R_FAILED — governors stays zero-initialised (no governor shown)
     }
 
-    tsl::changeTo<AppProfileGui>(applicationId, profileList, governors, initialProfile);
+    tsl::changeTo<AppProfileGui>(applicationId, profileList, governors, initialProfile,
+                                 std::move(onStateChanged));
 }
 
 void AppProfileGui::update()

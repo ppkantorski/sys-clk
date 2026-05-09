@@ -561,6 +561,42 @@ void MiscGui::listUI()
         }
     ), 12);
 
+    // ── HOC-specific section ─────────────────────────────────────────
+    if (usingHOC()) {
+        // Allow Governing — HOC only, not present on EOS.
+        auto* govToggle = new tsl::elm::MiniToggleListItem("Allow Governing", configValues["allow_governing"]);
+        govToggle->setStateChangedListener([this](bool state) {
+            configValues["allow_governing"] = state;
+            setConfigValue("allow_governing", state);
+            this->lastContextUpdate = armGetSystemTick();
+        });
+        this->listElement->addItem(govToggle);
+        this->configToggles["allow_governing"] = govToggle;
+
+        // CPU Governor Minimum Frequency — HOC only.
+        // Values mirror hoc-clk: 510 → 1020 MHz in 102 MHz steps.
+        // Stored in config.ini as raw Hz (e.g. 612000000).
+        this->cpuGovMinTrackbar = new tsl::elm::NamedStepTrackBar(
+            "", { "510 MHz", "612 MHz", "714 MHz", "816 MHz", "918 MHz", "1020 MHz" },
+            true, "CPU Gov Min Freq"
+        );
+
+        const int storedCpuGovMin = getConfigIntValue("cpu_gov_min_freq", 612000000);
+        const int cpuGovMinIndex  = std::max(0, std::min(5,
+            (storedCpuGovMin / 1000000 - 510) / 102));
+        this->cpuGovMinTrackbar->setProgress(static_cast<u8>(cpuGovMinIndex));
+        this->m_cpuGovMinWritten = storedCpuGovMin;
+
+        this->cpuGovMinTrackbar->setValueChangedListener([this](u8 value) {
+            const int hz = (static_cast<int>(value) * 102 + 510) * 1000000;
+            this->m_cpuGovMinWritten = hz;
+            setConfigIntValue("cpu_gov_min_freq", hz);
+            this->lastContextUpdate = armGetSystemTick();
+        });
+        this->listElement->addItem(this->cpuGovMinTrackbar);
+    }
+
+
     // Common toggles present in both HOC and EOS
     addConfigToggle("uncapped_clocks", "Uncapped Clocks");
 
@@ -654,42 +690,6 @@ void MiscGui::listUI()
             this->lastContextUpdate = armGetSystemTick();
         });
         this->listElement->addItem(this->gpuVminOffsetTrackbar);
-
-
-        // ── HOC-specific section ─────────────────────────────────────────
-        if (usingHOC()) {
-            // Allow Governing — HOC only, not present on EOS.
-            auto* govToggle = new tsl::elm::MiniToggleListItem("Allow Governing", configValues["allow_governing"]);
-            govToggle->setStateChangedListener([this](bool state) {
-                configValues["allow_governing"] = state;
-                setConfigValue("allow_governing", state);
-                this->lastContextUpdate = armGetSystemTick();
-            });
-            this->listElement->addItem(govToggle);
-            this->configToggles["allow_governing"] = govToggle;
-
-            // CPU Governor Minimum Frequency — HOC only.
-            // Values mirror hoc-clk: 510 → 1020 MHz in 102 MHz steps.
-            // Stored in config.ini as raw Hz (e.g. 612000000).
-            this->cpuGovMinTrackbar = new tsl::elm::NamedStepTrackBar(
-                "", { "510 MHz", "612 MHz", "714 MHz", "816 MHz", "918 MHz", "1020 MHz" },
-                true, "CPU Gov Min Freq"
-            );
-
-            const int storedCpuGovMin = getConfigIntValue("cpu_gov_min_freq", 612000000);
-            const int cpuGovMinIndex  = std::max(0, std::min(5,
-                (storedCpuGovMin / 1000000 - 510) / 102));
-            this->cpuGovMinTrackbar->setProgress(static_cast<u8>(cpuGovMinIndex));
-            this->m_cpuGovMinWritten = storedCpuGovMin;
-
-            this->cpuGovMinTrackbar->setValueChangedListener([this](u8 value) {
-                const int hz = (static_cast<int>(value) * 102 + 510) * 1000000;
-                this->m_cpuGovMinWritten = hz;
-                setConfigIntValue("cpu_gov_min_freq", hz);
-                this->lastContextUpdate = armGetSystemTick();
-            });
-            this->listElement->addItem(this->cpuGovMinTrackbar);
-        }
     }
 
     // ── Overlay Settings ─────────────────────────────────────────────────

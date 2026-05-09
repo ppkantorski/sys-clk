@@ -85,13 +85,31 @@ public:
 
 // ── GlobalOverrideGui ─────────────────────────────────────────────────────
 
-GlobalOverrideGui::GlobalOverrideGui()
+GlobalOverrideGui::GlobalOverrideGui(std::function<void(bool)> onStateChanged)
+    : m_onStateChanged(std::move(onStateChanged))
 {
     for(std::uint16_t m = 0; m < SysClkModule_EnumMax; m++)
     {
         this->listItems[m] = nullptr;
         this->listHz[m] = 0;
     }
+}
+
+// Returns true when any temporary override freq is non-zero, OR (HOC mode +
+// Allow Governing only) the temporary governor override is non-zero.
+bool GlobalOverrideGui::hasAnyNonZero() const
+{
+    if (this->context)
+        for (int m = 0; m < SysClkModule_EnumMax; m++)
+            if (this->context->overrideFreqs[m])
+                return true;
+
+    // Governor counts only in HOC mode with Allow Governing enabled.
+    if (usingHOC() && FreqChoiceGui::readShowGoverning())
+        if (this->m_tempGovernorPacked)
+            return true;
+
+    return false;
 }
 
 void GlobalOverrideGui::openFreqChoiceGui(SysClkModule module)
@@ -127,6 +145,9 @@ void GlobalOverrideGui::openFreqChoiceGui(SysClkModule module)
         this->lastContextUpdate = armGetSystemTick();
         this->context->overrideFreqs[module] = hz;
 
+        if (this->m_onStateChanged)
+            this->m_onStateChanged(this->hasAnyNonZero());
+
         return true;
     }, govLabels);
 }
@@ -155,6 +176,9 @@ void GlobalOverrideGui::addModuleListItem(SysClkModule module)
             this->context->overrideFreqs[module] = 0;
             this->listHz[module] = 0;
             this->listItems[module]->setValue(formatListFreqHz(0));
+
+            if (this->m_onStateChanged)
+                this->m_onStateChanged(this->hasAnyNonZero());
 
             listItem->triggerClickAnimation();
             triggerSettingsFeedback();
@@ -199,6 +223,8 @@ void GlobalOverrideGui::listUI()
                         // Update the parent item label immediately on every bar change
                         if (this->m_governorItem)
                             this->m_governorItem->setValue(governorPackedLabel(packed));
+                        if (this->m_onStateChanged)
+                            this->m_onStateChanged(this->hasAnyNonZero());
                     });
                 return true;
             }
@@ -212,6 +238,8 @@ void GlobalOverrideGui::listUI()
                 this->lastContextUpdate = armGetSystemTick();
                 this->m_tempGovernorPacked = 0;
                 item->setValue(governorPackedLabel(0));
+                if (this->m_onStateChanged)
+                    this->m_onStateChanged(this->hasAnyNonZero());
                 item->triggerClickAnimation();
                 triggerSettingsFeedback();
                 return true;
