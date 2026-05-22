@@ -20,7 +20,7 @@ public:
     void refresh() override { BaseMenuGui::refresh(); }
 private:
     static constexpr int RATES[] = {1, 2, 3, 5};
-    static constexpr int RATE_COUNT = 7;
+    static constexpr int RATE_COUNT = 4;
     tsl::elm::ListItem* createRateItem(int hz, bool selected);
     std::function<void(int)> m_onSelected;
 };
