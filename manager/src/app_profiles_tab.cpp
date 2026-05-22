@@ -31,6 +31,51 @@
 
 #define PROFILE_BADGE "\uE3E0"
 
+#ifdef __SWITCH__
+#include <zlib.h>
+
+static bool _nacpConvertTitleData(NacpStruct* nacp) {
+    if(nacp->titles_data_format == 0) {
+        return true;
+    }
+
+    if(nacp->titles_data_format != 1) {
+        brls::Logger::error("unexpected title data format: %u", nacp->titles_data_format);
+        return false;
+    }
+
+    NacpLanguageEntry tmp[32];
+    z_stream stream = {};
+    stream.avail_out = sizeof(tmp);
+    stream.next_out = (Bytef*)tmp;
+    stream.avail_in = nacp->lang_data.compressed_data.buffer_size;
+    stream.next_in = nacp->lang_data.compressed_data.buffer;
+
+    int ret = inflateInit2(&stream, -15);
+    if(ret != Z_OK) {
+        brls::Logger::error("inflateInit2: [%d] %s", ret, stream.msg);
+        return false;
+    }
+
+    ret = inflate(&stream, Z_FINISH);
+    inflateEnd(&stream);
+
+    if(ret != Z_STREAM_END) {
+        brls::Logger::error("inflate: [%d] %s", ret, stream.msg);
+        return false;
+    }
+
+    nacp->titles_data_format = 0;
+    memcpy(nacp->lang_data.lang, tmp, sizeof(nacp->lang_data.lang));
+    return true;
+}
+#else
+static bool _nacpConvertTitleData(NacpStruct* nacp) {
+    return true;
+}
+#endif
+
+
 AppProfilesTab::AppProfilesTab()
 {
     // Filter toggle
@@ -78,6 +123,11 @@ AppProfilesTab::AppProfilesTab()
             break;
         }
 
+        // Decompress lang entries if required (fixes garbled text for updated titles like BOTW on 21.0.0+)
+        if(!_nacpConvertTitleData(&controlData.nacp)) {
+            break;
+        }
+
         // Language entry
         rc = nacpGetLanguageEntry(&controlData.nacp, &langEntry);
         if (R_FAILED(rc))
@@ -87,7 +137,7 @@ AppProfilesTab::AppProfilesTab()
         }
 
         // Name
-        if (!langEntry->name)
+        if (!langEntry->name[0])
         {
             i++;
             continue;

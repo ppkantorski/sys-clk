@@ -33,6 +33,7 @@ class SysClkShimServer
         void SetContextHz(SysClkModule module, u32 hz);
         void SetContextRealHz(SysClkModule module, u32 hz);
         void SetContextTemp(SysClkThermalSensor sensor, u32 temp);
+        void SetContextPower(SysClkPowerSensor sensor, u32 mw);
         void SetContextProfile(SysClkProfile profile);
         void SetContextEnabled(bool enabled);
         void SetContextOverride(SysClkModule module, u32 hz);

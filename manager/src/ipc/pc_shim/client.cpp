@@ -40,8 +40,12 @@ Result sysclkIpcInitialize()
         g_server->SetContextHz(SysClkModule_CPU, 1020000000);
         g_server->SetContextHz(SysClkModule_GPU, 307200000);
         g_server->SetContextHz(SysClkModule_MEM, 1065600000);
+        g_server->SetContextRealHz(SysClkModule_CPU, 1020100000);
+        g_server->SetContextRealHz(SysClkModule_GPU, 307300000);
+        g_server->SetContextRealHz(SysClkModule_MEM, 1065700000);
         g_server->SetContextTemp(SysClkThermalSensor_PCB, 45700);
         g_server->SetContextTemp(SysClkThermalSensor_SOC, 48200);
+        g_server->SetContextTemp(SysClkThermalSensor_Skin, 44000);
         g_server->SetContextEnabled(true);
 
         g_server->SetProfile(0x010000000000F002, SysClkModule_CPU, SysClkProfile_Docked, 1224);
@@ -139,11 +143,13 @@ Result sysclkIpcSetEnabled(bool enabled)
     {
         g_server->SetContextTemp(SysClkThermalSensor_PCB, 45700);
         g_server->SetContextTemp(SysClkThermalSensor_SOC, 48200);
+        g_server->SetContextTemp(SysClkThermalSensor_Skin, 44000);
     }
     else
     {
         g_server->SetContextTemp(SysClkThermalSensor_PCB, 34200);
         g_server->SetContextTemp(SysClkThermalSensor_SOC, 42800);
+        g_server->SetContextTemp(SysClkThermalSensor_Skin, 35000);
     }
 
     return 0;
@@ -194,6 +200,9 @@ SysClkShimServer::SysClkShimServer()
     this->SetContextOverride(SysClkModule_MEM, 0);
     this->SetContextTemp(SysClkThermalSensor_PCB, 0);
     this->SetContextTemp(SysClkThermalSensor_SOC, 0);
+    this->SetContextTemp(SysClkThermalSensor_Skin, 0);
+    this->SetContextPower(SysClkPowerSensor_Now, 0);
+    this->SetContextPower(SysClkPowerSensor_Avg, 0);
     this->SetContextProfile(SysClkProfile_Handheld);
     this->SetContextEnabled(false);
 
@@ -229,6 +238,14 @@ void SysClkShimServer::SetContextTemp(SysClkThermalSensor sensor, u32 temp)
     if(sensor < SysClkThermalSensor_EnumMax)
     {
         this->context.temps[sensor] = temp;
+    }
+}
+
+void SysClkShimServer::SetContextPower(SysClkPowerSensor sensor, u32 mw)
+{
+    if(sensor < SysClkPowerSensor_EnumMax)
+    {
+        this->context.power[sensor] = mw;
     }
 }
 
