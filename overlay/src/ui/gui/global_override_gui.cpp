@@ -12,14 +12,104 @@
 
 #include "fatal_gui.h"
 #include "../format.h"
+#include "labels.h"
+#include "freq_choice_gui.h"
 
-GlobalOverrideGui::GlobalOverrideGui()
+// HocClkModule_Governor = 3 — send via sysclkIpcSetOverride to set temporary governor.
+#define GOVERNOR_MODULE_INDEX 3
+
+// Returns the display string for the Governor list-item value.
+// Mirrors the logic in app_profile_gui.cpp's governorPackedLabel().
+static std::string governorPackedLabel(uint32_t packed)
+{
+    u8 cpu = (packed >> 0) & 0xFF;
+    u8 gpu = (packed >> 8) & 0xFF;
+    if (cpu > 2) cpu = 0;
+    if (gpu > 2) gpu = 0;
+
+    if (cpu == 0 && gpu == 0)
+        return ult::DROPDOWN_SYMBOL;
+
+    auto stateName = [](u8 v) -> const char* {
+        return v == 2 ? "Enabled" : "Disabled";
+    };
+
+    if (cpu == 0) return stateName(gpu);
+    if (gpu == 0) return stateName(cpu);
+    // Both set: "CPU_STATE ─ GPU_STATE"
+    return std::string(stateName(cpu)) + ult::DIVIDER_SYMBOL + stateName(gpu);
+}
+
+// ── GovernorOverrideSubMenuGui ────────────────────────────────────────────
+// Initialized with the parent GlobalOverrideGui's current packed value.
+// On change, calls setter() to update the parent's member and the sysmodule.
+
+class GovernorOverrideSubMenuGui : public BaseMenuGui {
+    uint32_t packed;
+    std::function<void(uint32_t)> setter;
+public:
+    GovernorOverrideSubMenuGui(uint32_t initialPacked, std::function<void(uint32_t)> setter)
+        : packed(initialPacked), setter(std::move(setter)) {}
+
+    void listUI() override {
+        auto* header = new tsl::elm::CategoryHeader("Governor");
+        header->setValue("Temporary " + ult::DIVIDER_SYMBOL + " Override", tsl::sectionTextColor);
+        this->listElement->addItem(header);
+
+        static constexpr struct { const char* label; int shift; } kAll[] = {
+            { "CPU", 0 },
+            { "GPU", 8 },
+        };
+
+        for (int i = 0; i < 2; i++) {
+            u8 cur = (this->packed >> kAll[i].shift) & 0xFF;
+            if (cur > 2) cur = 0;
+
+            auto* bar = new tsl::elm::NamedStepTrackBar(
+                "", { "Do not override", "Disabled", "Enabled" },
+                true, kAll[i].label
+            );
+            bar->setProgress(cur);
+
+            int shift = kAll[i].shift;
+            bar->setValueChangedListener([this, shift](u8 value) {
+                this->packed = (this->packed & ~(0xFFu << shift))
+                              | ((uint32_t)value << shift);
+                this->setter(this->packed);
+            });
+
+            this->listElement->addItem(bar);
+        }
+    }
+};
+
+// ── GlobalOverrideGui ─────────────────────────────────────────────────────
+
+GlobalOverrideGui::GlobalOverrideGui(std::function<void(bool)> onStateChanged)
+    : m_onStateChanged(std::move(onStateChanged))
 {
     for(std::uint16_t m = 0; m < SysClkModule_EnumMax; m++)
     {
         this->listItems[m] = nullptr;
         this->listHz[m] = 0;
     }
+}
+
+// Returns true when any temporary override freq is non-zero, OR (HOC mode +
+// Allow Governing only) the temporary governor override is non-zero.
+bool GlobalOverrideGui::hasAnyNonZero() const
+{
+    if (this->context)
+        for (int m = 0; m < SysClkModule_EnumMax; m++)
+            if (this->context->overrideFreqs[m])
+                return true;
+
+    // Governor counts only in HOC mode with Allow Governing enabled.
+    if (usingHOC() && FreqChoiceGui::readShowGoverning())
+        if (this->m_tempGovernorPacked)
+            return true;
+
+    return false;
 }
 
 void GlobalOverrideGui::openFreqChoiceGui(SysClkModule module)
@@ -32,7 +122,19 @@ void GlobalOverrideGui::openFreqChoiceGui(SysClkModule module)
         FatalGui::openWithResultCode("sysclkIpcGetFreqList", rc);
         return;
     }
-    tsl::changeTo<FreqChoiceGui>(this->context->overrideFreqs[module], hzList, hzCount, module, [this, module](std::uint32_t hz) {
+
+    std::map<uint32_t, std::string> govLabels;
+    if (usingHOC() && FreqChoiceGui::readShowGoverning()) {
+        if (module == SysClkModule_CPU)
+            govLabels = IsMariko() ? cpu_freq_label_m : cpu_freq_label_e;
+        else if (module == SysClkModule_GPU)
+            govLabels = IsMariko() ? gpu_freq_label_m : gpu_freq_label_e;
+    }
+
+    // SysClkProfile_EnumMax signals "Override" context to FreqChoiceGui
+    tsl::changeTo<FreqChoiceGui>(this->context->overrideFreqs[module], hzList, hzCount,
+        module, SysClkProfile_EnumMax, false,
+        [this, module](std::uint32_t hz) {
         Result rc = sysclkIpcSetOverride(module, hz);
         if(R_FAILED(rc))
         {
@@ -43,8 +145,11 @@ void GlobalOverrideGui::openFreqChoiceGui(SysClkModule module)
         this->lastContextUpdate = armGetSystemTick();
         this->context->overrideFreqs[module] = hz;
 
+        if (this->m_onStateChanged)
+            this->m_onStateChanged(this->hasAnyNonZero());
+
         return true;
-    });
+    }, govLabels);
 }
 
 void GlobalOverrideGui::addModuleListItem(SysClkModule module)
@@ -60,25 +165,24 @@ void GlobalOverrideGui::addModuleListItem(SysClkModule module)
         }
         else if((keys & KEY_Y) == KEY_Y)
         {
-            // Reset override to "Do not override" (0 Hz)
             Result rc = sysclkIpcSetOverride(module, 0);
             if(R_FAILED(rc))
             {
                 FatalGui::openWithResultCode("sysclkIpcSetOverride", rc);
                 return false;
             }
-            
-            // Update context and tracking variables
+
             this->lastContextUpdate = armGetSystemTick();
             this->context->overrideFreqs[module] = 0;
             this->listHz[module] = 0;
-            
-            // Update display
             this->listItems[module]->setValue(formatListFreqHz(0));
+
+            if (this->m_onStateChanged)
+                this->m_onStateChanged(this->hasAnyNonZero());
 
             listItem->triggerClickAnimation();
             triggerSettingsFeedback();
-            
+
             return true;
         }
         return false;
@@ -89,10 +193,61 @@ void GlobalOverrideGui::addModuleListItem(SysClkModule module)
 
 void GlobalOverrideGui::listUI()
 {
-    this->listElement->addItem(new tsl::elm::CategoryHeader("Temporary Overrides " + ult::DIVIDER_SYMBOL + "  Reset"));
+    auto* header = new tsl::elm::CategoryHeader("Override " + ult::DIVIDER_SYMBOL + "  Reset");
+    header->setValue("Temporary", tsl::sectionTextColor);
+    this->listElement->addItem(header);
+
     this->addModuleListItem(SysClkModule_CPU);
     this->addModuleListItem(SysClkModule_GPU);
     this->addModuleListItem(SysClkModule_MEM);
+
+    // Governor override — HOC mode + Allow Governing only
+    if (usingHOC() && FreqChoiceGui::readShowGoverning()) {
+        auto* item = new tsl::elm::ListItem("Governor");
+        this->m_governorItem = item;
+        item->setValue(governorPackedLabel(this->m_tempGovernorPacked));
+        item->setClickListener([this, item](u64 keys) -> bool {
+            if ((keys & HidNpadButton_A) == HidNpadButton_A) {
+                tsl::shiftItemFocus(item);
+                // Read current governor override from the sysmodule context —
+                // same way CPU/GPU/MEM overrides are read back.
+                if (this->context)
+                    this->m_tempGovernorPacked = this->context->governorOverride;
+                // Sync label before entering submenu
+                item->setValue(governorPackedLabel(this->m_tempGovernorPacked));
+                tsl::changeTo<GovernorOverrideSubMenuGui>(
+                    this->m_tempGovernorPacked,
+                    [this](uint32_t packed) {
+                        this->m_tempGovernorPacked = packed;
+                        sysclkIpcSetOverride((SysClkModule)GOVERNOR_MODULE_INDEX, packed);
+                        // Update the parent item label immediately on every bar change
+                        if (this->m_governorItem)
+                            this->m_governorItem->setValue(governorPackedLabel(packed));
+                        if (this->m_onStateChanged)
+                            this->m_onStateChanged(this->hasAnyNonZero());
+                    });
+                return true;
+            }
+            else if ((keys & KEY_Y) == KEY_Y) {
+                // Reset both CPU and GPU governor overrides to "Do not override"
+                Result rc = sysclkIpcSetOverride((SysClkModule)GOVERNOR_MODULE_INDEX, 0);
+                if (R_FAILED(rc)) {
+                    FatalGui::openWithResultCode("sysclkIpcSetOverride", rc);
+                    return false;
+                }
+                this->lastContextUpdate = armGetSystemTick();
+                this->m_tempGovernorPacked = 0;
+                item->setValue(governorPackedLabel(0));
+                if (this->m_onStateChanged)
+                    this->m_onStateChanged(this->hasAnyNonZero());
+                item->triggerClickAnimation();
+                triggerSettingsFeedback();
+                return true;
+            }
+            return false;
+        });
+        this->listElement->addItem(item);
+    }
 }
 
 void GlobalOverrideGui::refresh()
@@ -107,6 +262,15 @@ void GlobalOverrideGui::refresh()
                 this->listItems[m]->setValue(formatListFreqHz(this->context->overrideFreqs[m]));
                 this->listHz[m] = this->context->overrideFreqs[m];
             }
+        }
+
+        // Keep the governor item label in sync with context — same guard as the
+        // freq items above so we only redraw when the value actually changed.
+        if (this->m_governorItem != nullptr &&
+            this->context->governorOverride != this->m_tempGovernorPacked)
+        {
+            this->m_tempGovernorPacked = this->context->governorOverride;
+            this->m_governorItem->setValue(governorPackedLabel(this->m_tempGovernorPacked));
         }
     }
 }
