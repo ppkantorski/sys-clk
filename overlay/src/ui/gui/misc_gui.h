@@ -19,7 +19,7 @@ public:
     // No periodic refresh needed for this static list
     void refresh() override { BaseMenuGui::refresh(); }
 private:
-    static constexpr int RATES[] = {1, 2, 3, 5, 10, 30, 60};
+    static constexpr int RATES[] = {1, 2, 3, 5};
     static constexpr int RATE_COUNT = 7;
     tsl::elm::ListItem* createRateItem(int hz, bool selected);
     std::function<void(int)> m_onSelected;
@@ -32,6 +32,7 @@ class MiscGui : public BaseMenuGui
         ~MiscGui();
         void listUI() override;
         void refresh() override;
+        void update() override;
     protected:
         
         std::unordered_map<std::string, tsl::elm::ToggleListItem*> configToggles;
@@ -62,4 +63,5 @@ class MiscGui : public BaseMenuGui
         int m_cpuGovMinWritten     = -1;   // HOC: cpu_gov_min_freq (sentinel -1 = uninitialised)
 
         u8 frameCounter = 60;
+        bool m_pendingGovSwap = false;
 };

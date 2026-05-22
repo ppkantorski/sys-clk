@@ -38,6 +38,12 @@ class BaseGui : public tsl::Gui
 extern bool usingHOC();
 extern bool usingEOS();
 
+// Returns true if the HOC or EOS kip is both present on the SD card and was
+// actually applied by the bootloader (EMC frequency table has entries above
+// the stock 1600 MHz ceiling).  Pass isHOC=true for hoc.kip, false for EOS
+// loader.kip.  Result is cached after the first call per mode.
+extern bool kipLoaded(bool isHOC);
+
 // Hardware SoC detection (cached after first call)
 extern bool IsMariko();
 extern bool IsErista();

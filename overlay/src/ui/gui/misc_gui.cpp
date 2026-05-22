@@ -569,6 +569,9 @@ void MiscGui::listUI()
             configValues["allow_governing"] = state;
             setConfigValue("allow_governing", state);
             this->lastContextUpdate = armGetSystemTick();
+            // Defer the swapTo to update() — calling it here (inside onClick's
+            // call chain) would destroy 'this' before onClick finishes, causing a crash.
+            this->m_pendingGovSwap = true;
         });
         this->listElement->addItem(govToggle);
         this->configToggles["allow_governing"] = govToggle;
@@ -576,24 +579,27 @@ void MiscGui::listUI()
         // CPU Governor Minimum Frequency — HOC only.
         // Values mirror hoc-clk: 510 → 1020 MHz in 102 MHz steps.
         // Stored in config.ini as raw Hz (e.g. 612000000).
-        this->cpuGovMinTrackbar = new tsl::elm::NamedStepTrackBar(
-            "", { "510 MHz", "612 MHz", "714 MHz", "816 MHz", "918 MHz", "1020 MHz" },
-            true, "CPU Gov Min Freq"
-        );
+        // Only shown when Allow Governing is enabled.
+        if (configValues["allow_governing"]) {
+            this->cpuGovMinTrackbar = new tsl::elm::NamedStepTrackBar(
+                "", { "510 MHz", "612 MHz", "714 MHz", "816 MHz", "918 MHz", "1020 MHz" },
+                true, "CPU Gov Min Freq"
+            );
 
-        const int storedCpuGovMin = getConfigIntValue("cpu_gov_min_freq", 612000000);
-        const int cpuGovMinIndex  = std::max(0, std::min(5,
-            (storedCpuGovMin / 1000000 - 510) / 102));
-        this->cpuGovMinTrackbar->setProgress(static_cast<u8>(cpuGovMinIndex));
-        this->m_cpuGovMinWritten = storedCpuGovMin;
+            const int storedCpuGovMin = getConfigIntValue("cpu_gov_min_freq", 612000000);
+            const int cpuGovMinIndex  = std::max(0, std::min(5,
+                (storedCpuGovMin / 1000000 - 510) / 102));
+            this->cpuGovMinTrackbar->setProgress(static_cast<u8>(cpuGovMinIndex));
+            this->m_cpuGovMinWritten = storedCpuGovMin;
 
-        this->cpuGovMinTrackbar->setValueChangedListener([this](u8 value) {
-            const int hz = (static_cast<int>(value) * 102 + 510) * 1000000;
-            this->m_cpuGovMinWritten = hz;
-            setConfigIntValue("cpu_gov_min_freq", hz);
-            this->lastContextUpdate = armGetSystemTick();
-        });
-        this->listElement->addItem(this->cpuGovMinTrackbar);
+            this->cpuGovMinTrackbar->setValueChangedListener([this](u8 value) {
+                const int hz = (static_cast<int>(value) * 102 + 510) * 1000000;
+                this->m_cpuGovMinWritten = hz;
+                setConfigIntValue("cpu_gov_min_freq", hz);
+                this->lastContextUpdate = armGetSystemTick();
+            });
+            this->listElement->addItem(this->cpuGovMinTrackbar);
+        }
     }
 
 
@@ -721,6 +727,44 @@ void MiscGui::listUI()
         return false;
     });
     this->listElement->addItem(this->refreshRateItem);
+}
+
+void MiscGui::update()
+{
+    BaseMenuGui::update();
+
+    if (this->m_pendingGovSwap) {
+        this->m_pendingGovSwap = false;
+
+        auto* govToggle = this->configToggles["allow_governing"];
+        const bool on = this->configValues["allow_governing"];
+
+        if (on && this->cpuGovMinTrackbar == nullptr) {
+            // Turning ON — create a fresh trackbar and insert it right after govToggle.
+            this->cpuGovMinTrackbar = new tsl::elm::NamedStepTrackBar(
+                "", { "510 MHz", "612 MHz", "714 MHz", "816 MHz", "918 MHz", "1020 MHz" },
+                true, "CPU Gov Min Freq"
+            );
+            const int stored = getConfigIntValue("cpu_gov_min_freq", 612000000);
+            const int idx    = std::max(0, std::min(5, (stored / 1000000 - 510) / 102));
+            this->cpuGovMinTrackbar->setProgress(static_cast<u8>(idx));
+            this->m_cpuGovMinWritten = stored;
+            this->cpuGovMinTrackbar->setValueChangedListener([this](u8 value) {
+                const int hz = (static_cast<int>(value) * 102 + 510) * 1000000;
+                this->m_cpuGovMinWritten = hz;
+                setConfigIntValue("cpu_gov_min_freq", hz);
+                this->lastContextUpdate = armGetSystemTick();
+            });
+            // Insert immediately after the govToggle item.
+            const s32 govIdx = this->listElement->getIndexInList(govToggle);
+            this->listElement->addItem(this->cpuGovMinTrackbar, 0, govIdx + 1);
+
+        } else if (!on && this->cpuGovMinTrackbar != nullptr) {
+            // Turning OFF — remove (and delete) the trackbar.
+            this->listElement->removeItem(this->cpuGovMinTrackbar);
+            this->cpuGovMinTrackbar = nullptr; // pointer is now owned/deleted by the list
+        }
+    }
 }
 
 void MiscGui::refresh() {
