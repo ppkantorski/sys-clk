@@ -248,13 +248,7 @@ BaseMenuGui::BaseMenuGui()
     static bool s_tempStateLoaded = false;
     if (!s_tempStateLoaded) {
         s_tempStateLoaded = true;
-        if (isUsingHOC) {
-            // HOC: default = show target freqs, + toggles to HOC IPC component temps
-            m_showComponentTemps = readOverlayBool(COMP_TEMPS_KEY, false);
-        } else {
-            // Stock and EOS: default = show SOCTHERM die temps, + toggles to target freqs
-            m_showComponentTemps = readOverlayBool(COMP_TEMPS_KEY, true);
-        }
+        m_showComponentTemps = readOverlayBool(COMP_TEMPS_KEY, true);
         // Load and apply the persisted refresh rate
         int hz = readOverlayInt(REFRESH_RATE_KEY, 1);
         if (hz <= 0) hz = 1;
