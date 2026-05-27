@@ -32,8 +32,8 @@ tsl::elm::ListItem* RefreshRateGui::createRateItem(int hz, bool selected)
 
 void RefreshRateGui::listUI()
 {
-    auto* header = new tsl::elm::CategoryHeader("Overlay Settings");
-    header->setValue("Refresh Rate", tsl::sectionTextColor);
+    auto* header = new tsl::elm::CategoryHeader("Table Refresh");
+    header->setValue("Overlay Settings", tsl::sectionTextColor);
     this->listElement->addItem(header);
 
     const int current = BaseMenuGui::getRefreshRateHz();
@@ -703,8 +703,8 @@ void MiscGui::listUI()
     //overlayHeader->setValue("Settings", tsl::sectionTextColor);
     this->listElement->addItem(overlayHeader);
 
-    // Refresh Rate dropdown item
-    this->refreshRateItem = new tsl::elm::MiniListItem("Refresh Rate", ult::DROPDOWN_SYMBOL);
+    // Table Refresh dropdown item
+    this->refreshRateItem = new tsl::elm::MiniListItem("Table Refresh", ult::DROPDOWN_SYMBOL);
     {
         // Display the current rate as the item value
         char valStr[16];
@@ -782,7 +782,7 @@ void MiscGui::refresh() {
         frameCounter = 0;
         updateConfigToggles();
 
-        // Keep the Refresh Rate item value display in sync (e.g. after returning
+        // Keep the Table Refresh item value display in sync (e.g. after returning
         // from RefreshRateGui or if the config was edited externally).
         if (this->refreshRateItem != nullptr) {
             char valStr[16];
