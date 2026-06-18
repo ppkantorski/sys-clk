@@ -14,7 +14,12 @@ tsl::elm::ListItem* RefreshRateGui::createRateItem(int hz, bool selected)
     char label[16];
     snprintf(label, sizeof(label), "%d Hz", hz);
     tsl::elm::ListItem* item = new tsl::elm::ListItem(label, "", true);
-    item->setValue(selected ? "\uE14B" : "");
+    item->setValue(selected ? ult::CHECKMARK_SYMBOL : "");
+
+    // Plain Switch2-style radio circle (no side label needed here -- the
+    // rate itself is already the item's text) -- same approach as
+    // ultrahand's Sort Priority / Key Combo lists.
+    item->setRadioSelector();
 
     item->setClickListener([this, hz](u64 keys) -> bool {
         if ((keys & KEY_A) == KEY_A) {

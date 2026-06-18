@@ -125,19 +125,29 @@ tsl::elm::ListItem* FreqChoiceGui::createFreqListItem(std::uint32_t hz,
                                                       bool selected,
                                                       int safety)
 {
-    // Look up annotation label for this frequency (if any)
-    std::string rightText;
+    // Look up annotation label for this frequency (if any). This is the
+    // persistent label shown beside the Switch2-style radio circle (always,
+    // selected or not) and, for Switch1 style, the right-side value text
+    // whenever this item isn't the current selection.
+    std::string label;
     if (this->showGoverning && hz != 0) {
         auto it = this->labels.find(hz);
         if (it != this->labels.end())
-            rightText = it->second;
+            label = it->second;
     }
 
-    // Selected checkmark overrides the annotation
-    if (selected)
-        rightText = "\uE14B";
+    // Switch1-style value text: the annotation label normally, but the
+    // selected checkmark overrides it when this is the current choice.
+    const std::string rightText = selected ? ult::CHECKMARK_SYMBOL : label;
 
     tsl::elm::ListItem* listItem = new tsl::elm::ListItem(formatListFreqHz(hz), rightText, true);
+
+    // Switch2-style radio selector: a circle in the value slot, with the
+    // annotation label (if any) always shown two spaces to its left --
+    // the same approach ultrahand uses for its package ;mode=option items.
+    // Selection itself is still read straight back off m_value (set via
+    // rightText above), so this stays in sync automatically.
+    listItem->setRadioLabelSelector(label);
 
     // Apply governing safety coloring (text + value), matching HOC exactly
     if (this->showGoverning && hz != 0) {
@@ -158,7 +168,7 @@ tsl::elm::ListItem* FreqChoiceGui::createFreqListItem(std::uint32_t hz,
     }
 
     // Annotation label → offTextColor
-    if (!rightText.empty() && !selected)
+    if (!label.empty() && !selected)
         listItem->setValueColor(tsl::offTextColor);
 
     // Selected checkmark → theme info color

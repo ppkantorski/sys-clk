@@ -294,6 +294,17 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer) {
     
     // === TOP SECTION ===
     renderer->drawRoundedRect(14, 70-1, 420, 30+2, 12.0f, renderer->aWithOpacity(tsl::tableBGColor));
+    const auto w2 = tsl::makeSwitch2Wheel(
+        0xFF57,   // anchor[0] UR — fixed peak: Muted Violet-Steel  (r=7, g=5, b=F, a=F)
+        0xFF46,   // anchor[2] LL — fixed peak: Deep Slate           (r=6, g=4, b=F, a=F)
+        0xF997,   // anchor[1] LR — hero bright: dim Warm Steel      (r=7, g=9, b=9, a=F)
+        0xF756,   // anchor[1] LR — hero deep:   dark Slate Navy     (r=6, g=5, b=7, a=F)
+        0xF89A,   // anchor[3] UL — hero bright: dim Periwinkle      (r=A, g=9, b=8, a=F)
+        0xF557,   // anchor[3] UL — hero deep:   dark Indigo Gray    (r=7, g=5, b=5, a=F)
+        12.0,
+        true
+    );
+    renderer->drawBorderedRoundedRect(14+2, 70-1, 420, 30+2, 1.0, 12.0f, renderer->aWithOpacity(tsl::widgetBorderColor), &w2);
     
     // App ID - use pre-formatted string
     renderer->drawString(labels[0], false, positions[0], y, SMALL_TEXT_SIZE, tsl::sectionTextColor);
@@ -312,6 +323,7 @@ void BaseMenuGui::preDraw(tsl::gfx::Renderer* renderer) {
     
     // === MAIN DATA SECTION ===
     renderer->drawRoundedRect(14, 106, 420, 116, 12.0f, renderer->aWithOpacity(tsl::tableBGColor));
+    renderer->drawBorderedRoundedRect(14+2, 106, 420, 116, 1.0, 12.0f, renderer->aWithOpacity(tsl::widgetBorderColor), &w2);
     
     // === FREQUENCY SECTION ===
     // Labels first (better cache locality)
@@ -618,7 +630,7 @@ tsl::elm::Element* BaseMenuGui::baseUI()
 {
     auto* list = new tsl::elm::List();
     this->listElement = list;
-    this->listElement->setCenterOffset(-61.0f - 4.0f);
+    this->listElement->setCenterOffset(-61.0f - 2.0f);
     this->listUI();
 
     return list;
