@@ -98,6 +98,7 @@ public:
                 "", { "Do not override", "Disabled", "Enabled" },
                 true, kAll[i].label
             );
+            bar->disableClickAnimation();
             bar->setProgress(cur);
 
             int    shift     = kAll[i].shift;

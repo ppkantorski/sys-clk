@@ -590,6 +590,7 @@ void MiscGui::listUI()
                 "", { "510 MHz", "612 MHz", "714 MHz", "816 MHz", "918 MHz", "1020 MHz" },
                 true, "CPU Gov Min Freq"
             );
+            this->cpuGovMinTrackbar->disableClickAnimation();
 
             const int storedCpuGovMin = getConfigIntValue("cpu_gov_min_freq", 612000000);
             const int cpuGovMinIndex  = std::max(0, std::min(5,
@@ -632,6 +633,7 @@ void MiscGui::listUI()
             "Official Service",
             "Hijack"
         }, true, "Auto GPU Vmin");
+        this->autoGPUVminTrackbar->disableClickAnimation();
         const int initAutoVmin = std::max(0, std::min(2, getConfigIntValue("auto_gpu_vmin", 1)));
         this->autoGPUVminTrackbar->setProgress(static_cast<u8>(initAutoVmin));
         this->autoGPUVminTrackbar->setValueChangedListener([this](u8 value) {
@@ -665,6 +667,7 @@ void MiscGui::listUI()
             setConfigIntValue("gpu_vmin_offset", storedValue);
             this->lastContextUpdate = armGetSystemTick();
         });
+        this->gpuVminOffsetTrackbar->disableClickAnimation();
         this->listElement->addItem(this->gpuVminOffsetTrackbar);
 
     } else {
@@ -682,7 +685,8 @@ void MiscGui::listUI()
                 "-25 mV",  "-20 mV", "-15 mV", "-10 mV", "-5 mV",
                 "0 mV",    "+5 mV",  "+10 mV", "+15 mV", "+20 mV"
             }, true, "GPU Vmin Offset");
-
+        this->gpuVminOffsetTrackbar->disableClickAnimation();
+        
         // Read stored mV value and convert to trackbar index.
         // stored=-100 → index=0, stored=0 → index=20, stored=+20 → index=24
         const int storedGPUVminOffsetValue = getConfigIntValue("dvfs_offset", 0);
