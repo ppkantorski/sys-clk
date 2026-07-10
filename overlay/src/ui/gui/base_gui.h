@@ -44,6 +44,11 @@ extern bool usingEOS();
 // loader.kip.  Result is cached after the first call per mode.
 extern bool kipLoaded(bool isHOC);
 
+// Reads the HOC version string (e.g. "2.4.2") from hoc.kip's CUST block.
+// Returns "" if the kip file is missing or the version cannot be read.
+// Result is cached after the first call.
+extern std::string hocKipVersion();
+
 // Hardware SoC detection (cached after first call)
 extern bool IsMariko();
 extern bool IsErista();

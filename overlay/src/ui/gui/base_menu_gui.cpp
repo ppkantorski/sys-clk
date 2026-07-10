@@ -70,83 +70,6 @@ static bool readOverlayBool(const char* key, bool defaultValue = false) {
     return result;
 }
 
-static int readOverlayInt(const char* key, int defaultValue) {
-    FILE* file = fopen(CONFIG_PATH, "r");
-    if (!file) return defaultValue;
-
-    char line[256];
-    bool inOverlay = false;
-    int  result    = defaultValue;
-
-    while (fgets(line, sizeof(line), file)) {
-        size_t len = strlen(line);
-        while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) line[--len] = '\0';
-
-        if (strcmp(line, OVERLAY_SECTION) == 0) { inOverlay = true; continue; }
-        if (inOverlay && line[0] == '[')         { break; }
-        if (!inOverlay)                          { continue; }
-
-        char* eq = strchr(line, '=');
-        if (!eq) continue;
-        *eq = '\0';
-        if (strcmp(line, key) == 0) {
-            result = atoi(eq + 1);
-            break;
-        }
-    }
-    fclose(file);
-    return result;
-}
-
-static void writeOverlayInt(const char* key, int value) {
-    FILE* file = fopen(CONFIG_PATH, "r");
-    if (!file) return;
-
-    std::vector<std::string> lines;
-    char buf[256];
-    int  overlaySectionIndex = -1;
-    int  existingKeyIndex    = -1;
-    bool inOverlay           = false;
-
-    while (fgets(buf, sizeof(buf), file)) {
-        size_t len = strlen(buf);
-        while (len > 0 && (buf[len-1] == '\n' || buf[len-1] == '\r')) buf[--len] = '\0';
-        lines.push_back(buf);
-
-        int idx = (int)lines.size() - 1;
-        if (strcmp(buf, OVERLAY_SECTION) == 0) { inOverlay = true; overlaySectionIndex = idx; continue; }
-        if (inOverlay && buf[0] == '[')        { inOverlay = false; continue; }
-        if (!inOverlay)                        { continue; }
-
-        char tmp[256];
-        strncpy(tmp, buf, sizeof(tmp));
-        char* eq = strchr(tmp, '=');
-        if (!eq) continue;
-        *eq = '\0';
-        if (strcmp(tmp, key) == 0) existingKeyIndex = idx;
-    }
-    fclose(file);
-
-    char valBuf[32];
-    snprintf(valBuf, sizeof(valBuf), "%d", value);
-    std::string entry = std::string(key) + "=" + valBuf;
-
-    if (existingKeyIndex >= 0) {
-        lines[existingKeyIndex] = entry;
-    } else if (overlaySectionIndex >= 0) {
-        lines.insert(lines.begin() + overlaySectionIndex + 1, entry);
-    } else {
-        lines.push_back("");
-        lines.push_back(OVERLAY_SECTION);
-        lines.push_back(entry);
-    }
-
-    FILE* out = fopen(CONFIG_PATH, "w");
-    if (!out) return;
-    for (const auto& l : lines) fprintf(out, "%s\n", l.c_str());
-    fclose(out);
-}
-
 static void writeOverlayBool(const char* key, bool value) {
     FILE* file = fopen(CONFIG_PATH, "r");
     if (!file) return;
@@ -199,22 +122,8 @@ static void writeOverlayBool(const char* key, bool value) {
 // ──────────────────────────────────────────────────────────────────────────
 
 // ── Overlay refresh rate ──────────────────────────────────────────────────
-static constexpr const char* REFRESH_RATE_KEY = "refresh_rate_hz";
-
-// Nanosecond interval derived from the Hz setting.  Loaded once at startup
-// and updated immediately when the user changes the dropdown.
-static u64 g_refreshIntervalNs = 1000000000UL; // default 1 Hz
-
-// Called from RefreshRateGui after writing the new value to the INI.
-void BaseMenuGui::applyRefreshRateHz(int hz) {
-    if (hz <= 0) hz = 1;
-    g_refreshIntervalNs = 1000000000UL / (u64)hz;
-    writeOverlayInt(REFRESH_RATE_KEY, hz);
-}
-
-int BaseMenuGui::getRefreshRateHz() {
-    return readOverlayInt(REFRESH_RATE_KEY, 1);
-}
+// The data table always refreshes at a fixed 3 Hz.
+static constexpr u64 g_refreshIntervalNs = 1000000000UL / 3;
 // ──────────────────────────────────────────────────────────────────────────
 
 BaseMenuGui::BaseMenuGui()
@@ -249,10 +158,6 @@ BaseMenuGui::BaseMenuGui()
     if (!s_tempStateLoaded) {
         s_tempStateLoaded = true;
         m_showComponentTemps = readOverlayBool(COMP_TEMPS_KEY, true);
-        // Load and apply the persisted refresh rate
-        int hz = readOverlayInt(REFRESH_RATE_KEY, 1);
-        if (hz <= 0) hz = 1;
-        g_refreshIntervalNs = 1000000000UL / (u64)hz;
     }
 
     // HOC reads component temps via IPC; EOS and stock use SOCTHERM hardware directly.

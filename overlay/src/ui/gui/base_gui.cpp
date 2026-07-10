@@ -108,6 +108,55 @@ bool kipLoaded(bool isHOC) {
     return kipFileExists(isHOC) && kipEmcApplied();
 }
 
+// Reads the HOC version out of hoc.kip by locating the "CUST" magic and
+// reading the kipVersion u32 stored 8 bytes after it (cust[4] + custRev u32).
+// e.g. 242 → "2.4.2".  Returns "" if the file or magic cannot be found.
+// Result is cached — the kip on disk cannot meaningfully change mid-session.
+std::string hocKipVersion() {
+    static std::string cached;
+    static bool checked = false;
+    if (checked)
+        return cached;
+    checked = true;
+
+    FILE* fp = fopen("sdmc:/atmosphere/kips/hoc.kip", "rb");
+    if (!fp)
+        return cached;
+
+    // Scan for the "CUST" magic in overlapping chunks.
+    static constexpr char MAGIC[4] = {'C', 'U', 'S', 'T'};
+    u8 buf[512];
+    long pos = 0;
+    long custOffset = -1;
+    while (custOffset < 0) {
+        fseek(fp, pos, SEEK_SET);
+        const size_t r = fread(buf, 1, sizeof(buf), fp);
+        if (r < sizeof(MAGIC))
+            break;
+        for (size_t i = 0; i + sizeof(MAGIC) <= r; i++) {
+            if (memcmp(&buf[i], MAGIC, sizeof(MAGIC)) == 0) {
+                custOffset = pos + (long)i;
+                break;
+            }
+        }
+        pos += (long)(r - (sizeof(MAGIC) - 1));
+    }
+
+    if (custOffset >= 0) {
+        // Layout: cust[4], u32 custRev, u32 kipVersion
+        u32 version = 0;
+        fseek(fp, custOffset + 8, SEEK_SET);
+        if (fread(&version, 1, sizeof(version), fp) == sizeof(version) && version > 0) {
+            char verStr[16];
+            snprintf(verStr, sizeof(verStr), "%u.%u.%u",
+                     version / 100, (version / 10) % 10, version % 10);
+            cached = verStr;
+        }
+    }
+    fclose(fp);
+    return cached;
+}
+
 void BaseGui::preDraw(tsl::gfx::Renderer* renderer)
 {
     renderer->drawBitmap(LOGO_X, LOGO_Y, LOGO_WIDTH, LOGO_HEIGHT, logo_rgba_bin);
@@ -126,20 +175,6 @@ tsl::elm::Element* BaseGui::createUI()
 {
     isUsingHOC = usingHOC();
     isUsingEOS = usingEOS();
-
-    // Warn the user once per session if they're running in HOC or EOS mode but
-    // the kip is either missing from the SD card or was not applied by the
-    // bootloader (e.g. present in /atmosphere/kips/ but not in hekate's list).
-    // The icon picks up hoc.rgba or eos.rgba from the Ultrahand assets folder
-    // if they exist, giving a branded look to match the active module.
-    static bool kipWarningShown = false;
-    if (!kipWarningShown && (isUsingHOC || isUsingEOS) && !kipLoaded(isUsingHOC)) {
-        kipWarningShown = true;
-        if (tsl::notification) {
-            const std::string iconName = isUsingHOC ? "hoc" : "eos";
-            tsl::notification->showNow("No kip detected!", 26, "sys-clk-"+iconName, 4000, true, iconName);
-        }
-    }
 
     BaseFrame* rootFrame = new BaseFrame(this);
     rootFrame->setContent(this->baseUI());

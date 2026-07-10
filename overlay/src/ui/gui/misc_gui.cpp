@@ -5,53 +5,6 @@
 #include <cstring>
 //#include <sstream>
 
-// ── RefreshRateGui ────────────────────────────────────────────────────────
-
-constexpr int RefreshRateGui::RATES[];
-
-tsl::elm::ListItem* RefreshRateGui::createRateItem(int hz, bool selected)
-{
-    char label[16];
-    snprintf(label, sizeof(label), "%d Hz", hz);
-    tsl::elm::ListItem* item = new tsl::elm::ListItem(label, "", true);
-    item->setValue(selected ? ult::CHECKMARK_SYMBOL : "");
-
-    // Plain Switch2-style radio circle (no side label needed here -- the
-    // rate itself is already the item's text) -- same approach as
-    // ultrahand's Sort Priority / Key Combo lists.
-    item->setRadioSelector();
-
-    item->setClickListener([this, hz](u64 keys) -> bool {
-        if ((keys & KEY_A) == KEY_A) {
-            BaseMenuGui::applyRefreshRateHz(hz);
-            // Notify the caller (MiscGui) immediately so its label updates
-            // without waiting up to 60 frames for the periodic refresh().
-            if (this->m_onSelected) this->m_onSelected(hz);
-            tsl::goBack();
-            return true;
-        }
-        return false;
-    });
-    return item;
-}
-
-void RefreshRateGui::listUI()
-{
-    auto* header = new tsl::elm::CategoryHeader("Table Refresh");
-    header->setValue("Overlay Settings", tsl::sectionTextColor);
-    this->listElement->addItem(header);
-
-    const int current = BaseMenuGui::getRefreshRateHz();
-    char selectedLabel[16];
-    snprintf(selectedLabel, sizeof(selectedLabel), "%d Hz", current);
-
-    for (int i = 0; i < RATE_COUNT; i++) {
-        this->listElement->addItem(createRateItem(RATES[i], RATES[i] == current));
-    }
-    // Jump cursor to the currently-selected item
-    this->listElement->jumpToItem(selectedLabel, "");
-}
-
 // ── MiscGui ───────────────────────────────────────────────────────────────
 
 MiscGui::MiscGui()
@@ -529,7 +482,15 @@ static constexpr int numEntries = 25;
 void MiscGui::listUI()
 {
     auto* moduleHeader = new tsl::elm::CategoryHeader("Module Settings");
-    //moduleHeader->setValue("Settings", tsl::sectionTextColor);
+    // HOC mode: show the kip version (e.g. "HOC 2.4.2") read from hoc.kip's
+    // CUST block, or "No KIP" when the kip is missing / not applied.
+    if (isUsingHOC) {
+        const std::string kipVer = hocKipVersion();
+        if (kipLoaded(true) && !kipVer.empty())
+            moduleHeader->setValue("HOC " + kipVer, tsl::sectionTextColor);
+        else
+            moduleHeader->setValue("No KIP", tsl::warningTextColor);
+    }
     this->listElement->addItem(moduleHeader);
 
     this->enabledToggle = new tsl::elm::ToggleListItem("Enable", false);
@@ -706,36 +667,6 @@ void MiscGui::listUI()
         });
         this->listElement->addItem(this->gpuVminOffsetTrackbar);
     }
-
-    // ── Overlay Settings ─────────────────────────────────────────────────
-    auto* overlayHeader = new tsl::elm::CategoryHeader("Overlay Settings");
-    //overlayHeader->setValue("Settings", tsl::sectionTextColor);
-    this->listElement->addItem(overlayHeader);
-
-    // Table Refresh dropdown item
-    this->refreshRateItem = new tsl::elm::MiniListItem("Table Refresh", ult::DROPDOWN_SYMBOL);
-    {
-        // Display the current rate as the item value
-        char valStr[16];
-        snprintf(valStr, sizeof(valStr), "%d Hz", BaseMenuGui::getRefreshRateHz());
-        this->refreshRateItem->setValue(valStr);
-    }
-    this->refreshRateItem->setClickListener([this](u64 keys) -> bool {
-        if ((keys & HidNpadButton_A) == HidNpadButton_A) {
-            tsl::shiftItemFocus(this->refreshRateItem);
-            // Capture the item pointer so the callback can update its label
-            // the instant the user makes a selection — no waiting for refresh().
-            auto* rateItem = this->refreshRateItem;
-            tsl::changeTo<RefreshRateGui>([rateItem](int hz) {
-                char valStr[16];
-                snprintf(valStr, sizeof(valStr), "%d Hz", hz);
-                rateItem->setValue(valStr);
-            });
-            return true;
-        }
-        return false;
-    });
-    this->listElement->addItem(this->refreshRateItem);
 }
 
 void MiscGui::update()
@@ -791,14 +722,7 @@ void MiscGui::refresh() {
         frameCounter = 0;
         updateConfigToggles();
 
-        // Keep the Table Refresh item value display in sync (e.g. after returning
-        // from RefreshRateGui or if the config was edited externally).
-        if (this->refreshRateItem != nullptr) {
-            char valStr[16];
-            snprintf(valStr, sizeof(valStr), "%d Hz", BaseMenuGui::getRefreshRateHz());
-            this->refreshRateItem->setValue(valStr);
-        }
-        
+
         // Update Auto GPU Vmin trackbar (EOS only: auto_gpu_vmin, range 0-2)
         if (usingEOS()) {
             if (this->autoGPUVminTrackbar != nullptr) {
