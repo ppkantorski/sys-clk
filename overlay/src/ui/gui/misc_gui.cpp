@@ -481,7 +481,7 @@ static constexpr int numEntries = 25;
 
 void MiscGui::listUI()
 {
-    auto* moduleHeader = new tsl::elm::CategoryHeader("Module Settings");
+    auto* moduleHeader = new tsl::elm::CategoryHeader("Settings");
     // HOC mode: show the kip version (e.g. "HOC 2.4.2") read from hoc.kip's
     // CUST block, or "No KIP" when the kip is missing / not applied.
     if (isUsingHOC) {
