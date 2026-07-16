@@ -28,6 +28,7 @@
     "No KIP": "KIPなし",
     "Allow Governing": "ガバニングを許可",
     "CPU Gov Min Freq": "CPUガバナー最低周波数",
+    "GPU Gov Min Freq": "GPUガバナー最低周波数",
     "Uncapped Clocks": "クロック制限解除",
     "Boost GPU Override": "Boost GPU 上書き",
     "Auto CPU Boost": "自動CPUブースト",

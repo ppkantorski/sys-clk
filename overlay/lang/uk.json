@@ -28,6 +28,7 @@
     "No KIP": "Немає KIP",
     "Allow Governing": "Дозволити governing",
     "CPU Gov Min Freq": "Мін. частота гов. CPU",
+    "GPU Gov Min Freq": "Мін. частота гов. GPU",
     "Uncapped Clocks": "Без обмежень",
     "Boost GPU Override": "Boost GPU Override",
     "Auto CPU Boost": "Авто Boost CPU",

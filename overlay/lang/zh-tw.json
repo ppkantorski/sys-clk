@@ -1,6 +1,6 @@
 {
-    "EOS mode": "EOS",
-    "HOC mode": "HOC",
+    "EOS mode": "EOS 模式",
+    "HOC mode": "HOC 模式",
     "App ID": "程式ID",
     "Profile": "配置",
     "CPU": "CPU",
@@ -28,6 +28,7 @@
     "No KIP": "無KIP",
     "Allow Governing": "允許調速",
     "CPU Gov Min Freq": "CPU調速最低頻率",
+    "GPU Gov Min Freq": "GPU調速最低頻率",
     "Uncapped Clocks": "解鎖頻率",
     "Boost GPU Override": "GPU加速覆蓋",
     "Auto CPU Boost": "自動CPU",

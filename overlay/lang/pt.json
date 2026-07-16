@@ -28,6 +28,7 @@
     "No KIP": "Sem KIP",
     "Allow Governing": "Permitir governing",
     "CPU Gov Min Freq": "Freq. mín. gov. CPU",
+    "GPU Gov Min Freq": "Freq. mín. gov. GPU",
     "Uncapped Clocks": "Clock ilimitado",
     "Boost GPU Override": "Boost GPU Substituir",
     "Auto CPU Boost": "Boost automático CPU",
