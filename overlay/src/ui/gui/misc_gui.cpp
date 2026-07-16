@@ -4,6 +4,41 @@
 #include <cstdio>
 #include <cstring>
 //#include <sstream>
+#include <climits>
+
+// ── Governor minimum-frequency options (HOC) ────────────────────────────────
+// Real Switch DVFS steps ONLY — the governor floors newHz to one of these and
+// then snaps through the hardware table, so off-table values would stall it.
+//   CPU: 510 → 1581 MHz (102 MHz steps, then the 1428→1581 hardware jump).
+//   GPU: 153.6 → 844.8 MHz (76.8 MHz steps).  Default & lowest = 153.6 MHz.
+// The label macros are passed straight into NamedStepTrackBar (a braced-init
+// list binds whether its param is std::initializer_list or std::vector); the
+// parallel Hz arrays drive the index<->Hz mapping so the two never drift.
+namespace {
+    constexpr int kCpuGovMinHz[] = {
+        510000000, 612000000, 714000000, 816000000, 918000000, 1020000000,
+        1122000000, 1224000000, 1326000000, 1428000000, 1581000000
+    };
+    constexpr int kGpuGovMinHz[] = {
+        76800000, 153600000, 230400000, 307200000, 384000000, 460800000,
+        537600000, 614400000, 691200000, 768000000, 844800000
+    };
+    constexpr int kCpuGovMinCount = (int)(sizeof(kCpuGovMinHz) / sizeof(kCpuGovMinHz[0]));
+    constexpr int kGpuGovMinCount = (int)(sizeof(kGpuGovMinHz) / sizeof(kGpuGovMinHz[0]));
+
+    // Nearest option index for a stored Hz value. Tolerates legacy / off-step
+    // values (e.g. an old cpu_gov_min_freq that isn't in the new list).
+    inline int govMinNearestIndex(const int* arr, int count, int hz) {
+        int best = 0; long bestDiff = LONG_MAX;
+        for (int i = 0; i < count; i++) {
+            long d = (long)arr[i] - (long)hz; if (d < 0) d = -d;
+            if (d < bestDiff) { bestDiff = d; best = i; }
+        }
+        return best;
+    }
+}
+#define CPU_GOV_MIN_LABELS { "510 MHz","612 MHz","714 MHz","816 MHz","918 MHz","1020 MHz","1122 MHz","1224 MHz","1326 MHz","1428 MHz","1581 MHz" }
+#define GPU_GOV_MIN_LABELS { "76 MHz","153 MHz","230 MHz","307 MHz","384 MHz","460 MHz","537 MHz","614 MHz","691 MHz","768 MHz","844 MHz" }
 
 // ── MiscGui ───────────────────────────────────────────────────────────────
 
@@ -547,25 +582,41 @@ void MiscGui::listUI()
         // Stored in config.ini as raw Hz (e.g. 612000000).
         // Only shown when Allow Governing is enabled.
         if (configValues["allow_governing"]) {
+            // CPU Governor Minimum Frequency — HOC only. Real DVFS steps, 510 → 1581 MHz.
             this->cpuGovMinTrackbar = new tsl::elm::NamedStepTrackBar(
-                "", { "510 MHz", "612 MHz", "714 MHz", "816 MHz", "918 MHz", "1020 MHz" },
-                true, "CPU Gov Min Freq"
+                "", CPU_GOV_MIN_LABELS, true, "CPU Gov Min Freq"
             );
             this->cpuGovMinTrackbar->disableClickAnimation();
-
             const int storedCpuGovMin = getConfigIntValue("cpu_gov_min_freq", 612000000);
-            const int cpuGovMinIndex  = std::max(0, std::min(5,
-                (storedCpuGovMin / 1000000 - 510) / 102));
-            this->cpuGovMinTrackbar->setProgress(static_cast<u8>(cpuGovMinIndex));
+            this->cpuGovMinTrackbar->setProgress(static_cast<u8>(
+                govMinNearestIndex(kCpuGovMinHz, kCpuGovMinCount, storedCpuGovMin)));
             this->m_cpuGovMinWritten = storedCpuGovMin;
-
             this->cpuGovMinTrackbar->setValueChangedListener([this](u8 value) {
-                const int hz = (static_cast<int>(value) * 102 + 510) * 1000000;
+                const int idx = std::max(0, std::min(kCpuGovMinCount - 1, static_cast<int>(value)));
+                const int hz  = kCpuGovMinHz[idx];
                 this->m_cpuGovMinWritten = hz;
                 setConfigIntValue("cpu_gov_min_freq", hz);
                 this->lastContextUpdate = armGetSystemTick();
             });
             this->listElement->addItem(this->cpuGovMinTrackbar);
+
+            // GPU Governor Minimum Frequency — HOC only. Real DVFS steps, 153 → 844 MHz.
+            this->gpuGovMinTrackbar = new tsl::elm::NamedStepTrackBar(
+                "", GPU_GOV_MIN_LABELS, true, "GPU Gov Min Freq"
+            );
+            this->gpuGovMinTrackbar->disableClickAnimation();
+            const int storedGpuGovMin = getConfigIntValue("gpu_gov_min_freq", 76800000);
+            this->gpuGovMinTrackbar->setProgress(static_cast<u8>(
+                govMinNearestIndex(kGpuGovMinHz, kGpuGovMinCount, storedGpuGovMin)));
+            this->m_gpuGovMinWritten = storedGpuGovMin;
+            this->gpuGovMinTrackbar->setValueChangedListener([this](u8 value) {
+                const int idx = std::max(0, std::min(kGpuGovMinCount - 1, static_cast<int>(value)));
+                const int hz  = kGpuGovMinHz[idx];
+                this->m_gpuGovMinWritten = hz;
+                setConfigIntValue("gpu_gov_min_freq", hz);
+                this->lastContextUpdate = armGetSystemTick();
+            });
+            this->listElement->addItem(this->gpuGovMinTrackbar);
         }
     }
 
@@ -680,29 +731,51 @@ void MiscGui::update()
         const bool on = this->configValues["allow_governing"];
 
         if (on && this->cpuGovMinTrackbar == nullptr) {
-            // Turning ON — create a fresh trackbar and insert it right after govToggle.
+            // Turning ON — create fresh trackbars and insert them after govToggle.
+            const s32 govIdx = this->listElement->getIndexInList(govToggle);
+
+            // CPU Gov Min Freq (inserted directly after govToggle).
             this->cpuGovMinTrackbar = new tsl::elm::NamedStepTrackBar(
-                "", { "510 MHz", "612 MHz", "714 MHz", "816 MHz", "918 MHz", "1020 MHz" },
-                true, "CPU Gov Min Freq"
+                "", CPU_GOV_MIN_LABELS, true, "CPU Gov Min Freq"
             );
-            const int stored = getConfigIntValue("cpu_gov_min_freq", 612000000);
-            const int idx    = std::max(0, std::min(5, (stored / 1000000 - 510) / 102));
-            this->cpuGovMinTrackbar->setProgress(static_cast<u8>(idx));
-            this->m_cpuGovMinWritten = stored;
+            const int storedCpu = getConfigIntValue("cpu_gov_min_freq", 612000000);
+            this->cpuGovMinTrackbar->setProgress(static_cast<u8>(
+                govMinNearestIndex(kCpuGovMinHz, kCpuGovMinCount, storedCpu)));
+            this->m_cpuGovMinWritten = storedCpu;
             this->cpuGovMinTrackbar->setValueChangedListener([this](u8 value) {
-                const int hz = (static_cast<int>(value) * 102 + 510) * 1000000;
+                const int idx = std::max(0, std::min(kCpuGovMinCount - 1, static_cast<int>(value)));
+                const int hz  = kCpuGovMinHz[idx];
                 this->m_cpuGovMinWritten = hz;
                 setConfigIntValue("cpu_gov_min_freq", hz);
                 this->lastContextUpdate = armGetSystemTick();
             });
-            // Insert immediately after the govToggle item.
-            const s32 govIdx = this->listElement->getIndexInList(govToggle);
             this->listElement->addItem(this->cpuGovMinTrackbar, 0, govIdx + 1);
 
+            // GPU Gov Min Freq (inserted directly after the CPU trackbar).
+            this->gpuGovMinTrackbar = new tsl::elm::NamedStepTrackBar(
+                "", GPU_GOV_MIN_LABELS, true, "GPU Gov Min Freq"
+            );
+            const int storedGpu = getConfigIntValue("gpu_gov_min_freq", 76800000);
+            this->gpuGovMinTrackbar->setProgress(static_cast<u8>(
+                govMinNearestIndex(kGpuGovMinHz, kGpuGovMinCount, storedGpu)));
+            this->m_gpuGovMinWritten = storedGpu;
+            this->gpuGovMinTrackbar->setValueChangedListener([this](u8 value) {
+                const int idx = std::max(0, std::min(kGpuGovMinCount - 1, static_cast<int>(value)));
+                const int hz  = kGpuGovMinHz[idx];
+                this->m_gpuGovMinWritten = hz;
+                setConfigIntValue("gpu_gov_min_freq", hz);
+                this->lastContextUpdate = armGetSystemTick();
+            });
+            this->listElement->addItem(this->gpuGovMinTrackbar, 0, govIdx + 2);
+
         } else if (!on && this->cpuGovMinTrackbar != nullptr) {
-            // Turning OFF — remove (and delete) the trackbar.
+            // Turning OFF — remove (and delete) both trackbars.
             this->listElement->removeItem(this->cpuGovMinTrackbar);
             this->cpuGovMinTrackbar = nullptr; // pointer is now owned/deleted by the list
+            if (this->gpuGovMinTrackbar != nullptr) {
+                this->listElement->removeItem(this->gpuGovMinTrackbar);
+                this->gpuGovMinTrackbar = nullptr;
+            }
         }
     }
 }
@@ -757,10 +830,19 @@ void MiscGui::refresh() {
             if (this->cpuGovMinTrackbar != nullptr) {
                 const int storedCpuGovMin = getConfigIntValue("cpu_gov_min_freq", 612000000);
                 if (storedCpuGovMin != this->m_cpuGovMinWritten) {
-                    const int idx = std::max(0, std::min(5,
-                        (storedCpuGovMin / 1000000 - 510) / 102));
-                    this->cpuGovMinTrackbar->setProgress(static_cast<u8>(idx));
+                    this->cpuGovMinTrackbar->setProgress(static_cast<u8>(
+                        govMinNearestIndex(kCpuGovMinHz, kCpuGovMinCount, storedCpuGovMin)));
                     this->m_cpuGovMinWritten = storedCpuGovMin;
+                }
+            }
+
+            // HOC GPU Governor Minimum Frequency (key: gpu_gov_min_freq, stored as Hz)
+            if (this->gpuGovMinTrackbar != nullptr) {
+                const int storedGpuGovMin = getConfigIntValue("gpu_gov_min_freq", 76800000);
+                if (storedGpuGovMin != this->m_gpuGovMinWritten) {
+                    this->gpuGovMinTrackbar->setProgress(static_cast<u8>(
+                        govMinNearestIndex(kGpuGovMinHz, kGpuGovMinCount, storedGpuGovMin)));
+                    this->m_gpuGovMinWritten = storedGpuGovMin;
                 }
             }
         }

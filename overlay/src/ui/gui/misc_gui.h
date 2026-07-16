@@ -53,6 +53,7 @@ class MiscGui : public BaseMenuGui
         tsl::elm::NamedStepTrackBar* autoGPUVminTrackbar  = nullptr; // EOS: 3-step Off/Official/Hijack
         tsl::elm::NamedStepTrackBar* gpuVminOffsetTrackbar = nullptr;
         tsl::elm::NamedStepTrackBar* cpuGovMinTrackbar     = nullptr; // HOC: cpu_gov_min_freq
+        tsl::elm::NamedStepTrackBar* gpuGovMinTrackbar     = nullptr; // HOC: gpu_gov_min_freq
         tsl::elm::ListItem* refreshRateItem = nullptr;
 
         // Tracks the mV value we last wrote so refresh() doesn't clobber the
@@ -61,6 +62,7 @@ class MiscGui : public BaseMenuGui
         int m_dvfsOffsetWritten    = -999; // HOC: dvfs_offset
         int m_eosVminOffsetWritten = -999; // EOS: gpu_vmin_offset
         int m_cpuGovMinWritten     = -1;   // HOC: cpu_gov_min_freq (sentinel -1 = uninitialised)
+        int m_gpuGovMinWritten     = -1;   // HOC: gpu_gov_min_freq (sentinel -1 = uninitialised)
 
         u8 frameCounter = 60;
         bool m_pendingGovSwap = false;
